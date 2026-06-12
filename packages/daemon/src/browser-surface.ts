@@ -281,8 +281,12 @@ class BrowserSession implements SurfaceSession {
     return this.page.url();
   }
 
-  async capture(viewport: Viewport): Promise<CapturedImage> {
+  async setViewport(viewport: Viewport): Promise<void> {
     await this.page.setViewportSize({ width: viewport.width, height: viewport.height });
+  }
+
+  async capture(viewport: Viewport): Promise<CapturedImage> {
+    await this.setViewport(viewport);
     const png = await this.page.screenshot({ fullPage: true });
     return { png: Buffer.from(png), consoleErrors: this.consoleErrors };
   }

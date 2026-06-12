@@ -9,6 +9,8 @@ export interface SurfaceSession {
   goto(route: string): Promise<void>;
   act(step: RecipeStep): Promise<void>;
   currentUrl(): Promise<string>;
+  /** Set viewport BEFORE building interaction state — overlays (dropdowns, popovers) close on resize. */
+  setViewport(viewport: Viewport): Promise<void>;
   capture(viewport: Viewport): Promise<CapturedImage>;
   resetErrorCount(): void;
   /**

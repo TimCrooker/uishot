@@ -82,7 +82,7 @@ export async function executeTargets(
         }
       }
     };
-    try {
+    const navAndSettle = async (): Promise<void> => {
       await session.goto(t.route);
       try {
         await settle();
@@ -93,33 +93,48 @@ export async function executeTargets(
           throw err;
         }
       }
-      if (opts.verifyOnly) {
-        verified.push({ screen: t.screenId, state: t.state, ok: true });
-        return;
-      }
-      for (const vp of t.sizes) {
-        const img = await session.capture(vp);
-        const path = shotPath(root, t.screenId, t.state, vp);
-        const hadPrev = existsSync(path);
-        writeShot(path, img.png);
-        const rec: ShotRecord = {
-          screen: t.screenId,
-          state: t.state,
-          size: vp.name,
-          path,
-          capturedAt: new Date().toISOString(),
-          gitSha: sha,
-          consoleErrors: img.consoleErrors,
-        };
-        if (t.diff && hadPrev) {
-          const d = diffPngs(readFileSync(prevPath(path)), img.png);
-          rec.changedRatio = d.changedRatio;
-          if (d.diffPng) {
-            writeFileSync(diffPath(path), d.diffPng);
-            rec.diffPath = diffPath(path);
-          }
+    };
+    const captureAt = async (vp: (typeof t.sizes)[number]): Promise<void> => {
+      const img = await session.capture(vp);
+      const path = shotPath(root, t.screenId, t.state, vp);
+      const hadPrev = existsSync(path);
+      writeShot(path, img.png);
+      const rec: ShotRecord = {
+        screen: t.screenId,
+        state: t.state,
+        size: vp.name,
+        path,
+        capturedAt: new Date().toISOString(),
+        gitSha: sha,
+        consoleErrors: img.consoleErrors,
+      };
+      if (t.diff && hadPrev) {
+        const d = diffPngs(readFileSync(prevPath(path)), img.png);
+        rec.changedRatio = d.changedRatio;
+        if (d.diffPng) {
+          writeFileSync(diffPath(path), d.diffPng);
+          rec.diffPath = diffPath(path);
         }
-        shots.push(rec);
+      }
+      shots.push(rec);
+    };
+    try {
+      if (t.steps.length > 0 && !opts.verifyOnly) {
+        // Stateful targets rebuild the state per viewport: transient overlays
+        // (dropdowns, popovers, portals) close on resize, so resizing after
+        // the recipe would capture a silently-degraded state.
+        for (const vp of t.sizes) {
+          await session.setViewport(vp);
+          await navAndSettle();
+          await captureAt(vp);
+        }
+      } else {
+        await navAndSettle();
+        if (opts.verifyOnly) {
+          verified.push({ screen: t.screenId, state: t.state, ok: true });
+          return;
+        }
+        for (const vp of t.sizes) await captureAt(vp);
       }
     } catch (err) {
       if (err instanceof StepFailure) {
