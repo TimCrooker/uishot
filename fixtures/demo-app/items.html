@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Items — Demo</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div data-testid="app-shell" class="shell">
+      <table data-testid="items-table">
+        <tr><th>Name</th><th>Price</th></tr>
+        <tr><td>Widget</td><td>$10</td></tr>
+        <tr><td>Gadget</td><td>$25</td></tr>
+      </table>
+      <p><button data-testid="open-filters">Filters</button></p>
+      <dialog id="filters">
+        <h2>Filters</h2>
+        <select id="status">
+          <option>active</option>
+          <option>sold</option>
+        </select>
+        <button data-testid="apply">Apply</button>
+      </dialog>
+    </div>
+    <script type="module">
+      import '/src/guard.ts';
+      document
+        .querySelector('[data-testid=open-filters]')
+        .addEventListener('click', () => document.getElementById('filters').showModal());
+    </script>
+  </body>
+</html>

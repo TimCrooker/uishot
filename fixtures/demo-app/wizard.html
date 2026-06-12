@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wizard — Demo</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div data-testid="app-shell" class="shell">
+      <div id="step-1" class="step">Step 1 <button data-testid="next">Next</button></div>
+      <div id="step-2" class="step" hidden>Step 2 <button data-testid="next-2">Next</button></div>
+      <div id="step-3" class="step" hidden>Done</div>
+    </div>
+    <script type="module">
+      import '/src/guard.ts';
+      const show = (n) => [1, 2, 3].forEach((i) => (document.getElementById(`step-${i}`).hidden = i !== n));
+      document.querySelector('[data-testid=next]').addEventListener('click', () => show(2));
+      document.querySelector('[data-testid=next-2]').addEventListener('click', () => show(3));
+    </script>
+  </body>
+</html>
