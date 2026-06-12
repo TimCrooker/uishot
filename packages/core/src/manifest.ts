@@ -171,6 +171,11 @@ export function parseManifest(
   };
 }
 
+/** Names of all ${VAR} references in a manifest text. */
+export function referencedEnvVars(yamlText: string): string[] {
+  return [...new Set([...yamlText.matchAll(/\$\{(\w+)\}/g)].map((m) => m[1]!))];
+}
+
 export function loadManifest(rootDir: string, env: Record<string, string | undefined> = process.env): Manifest {
   const path = join(rootDir, MANIFEST_FILENAME);
   let text: string;

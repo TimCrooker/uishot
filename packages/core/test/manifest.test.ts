@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseManifest, ManifestError } from '../src/manifest.js';
+import { parseManifest, referencedEnvVars, ManifestError } from '../src/manifest.js';
 
 const VALID = `
 app:
@@ -69,5 +69,12 @@ describe('parseManifest', () => {
   it('strips trailing slash from baseUrl', () => {
     const m = parseManifest(VALID, { TEST_APP_URL: 'http://x/' });
     expect(m.baseUrl).toBe('http://x');
+  });
+});
+
+describe('referencedEnvVars', () => {
+  it('lists unique ${VAR} names in manifest text', () => {
+    expect(referencedEnvVars('a: ${FOO}\nb: ${BAR}\nc: ${FOO}')).toEqual(['FOO', 'BAR']);
+    expect(referencedEnvVars('no vars here')).toEqual([]);
   });
 });

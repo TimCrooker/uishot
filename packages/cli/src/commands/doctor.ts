@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import { chromium } from 'playwright';
 import { existsSync } from 'node:fs';
 import { loadManifest, ManifestError, type Manifest } from '@uishot/core';
-import { getClient, projectRoot } from '../context.js';
+import { getClient, manifestEnv, projectRoot } from '../context.js';
 
 interface DoctorOptions {
   reauth?: boolean;
@@ -85,6 +85,7 @@ export function registerDoctor(program: Command): void {
                 screen: firstScreen,
                 session: name,
                 sizes: [manifest.defaultSizes[0]!],
+                env: manifestEnv(root),
               });
               if (res.failures.length > 0) throw new Error(`session "${name}": ${res.failures[0]!.message}`);
             }

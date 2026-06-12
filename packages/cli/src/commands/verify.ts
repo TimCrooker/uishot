@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getClient, projectRoot } from '../context.js';
+import { getClient, manifestEnv, projectRoot } from '../context.js';
 
 interface VerifyOptions {
   feature?: string;
@@ -13,8 +13,9 @@ export function registerVerify(program: Command): void {
     .option('--feature <tag>', 'limit to one feature')
     .option('--json')
     .action(async (opts: VerifyOptions) => {
-      const client = await getClient(projectRoot());
-      const results = await client.request('verify', { feature: opts.feature });
+      const root = projectRoot();
+      const client = await getClient(root);
+      const results = await client.request('verify', { feature: opts.feature, env: manifestEnv(root) });
       client.close();
       if (opts.json) {
         console.log(JSON.stringify(results, null, 2));

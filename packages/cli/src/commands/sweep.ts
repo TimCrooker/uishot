@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getClient, projectRoot } from '../context.js';
+import { getClient, manifestEnv, projectRoot } from '../context.js';
 import { emit } from '../output.js';
 
 interface SweepOptions {
@@ -17,6 +17,7 @@ async function runSweep(query: { feature?: string; all?: boolean }, opts: SweepO
     sizes: opts.sizes?.split(','),
     session: opts.session,
     diff: Boolean(opts.diff),
+    env: manifestEnv(root),
   });
   client.close();
   process.exit(emit(result, Boolean(opts.json)));

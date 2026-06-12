@@ -24,11 +24,20 @@ export interface VerifyFailure extends VerifiedState {
   stuckShotPath?: string;
 }
 
+/**
+ * Env vars the CLI resolved from ITS environment, passed per-request: the
+ * daemon's own env is frozen at spawn time and must never win over the
+ * caller's (manifest ${VAR} substitution uses request env first).
+ */
+export interface EnvCarrier {
+  env?: Record<string, string>;
+}
+
 export interface MethodMap {
   ping: { params: undefined; result: 'pong' };
   status: { params: undefined; result: DaemonStatus };
-  snap: { params: CaptureQuery; result: ExecuteResult };
-  verify: { params: { feature?: string }; result: VerifyFailure[] };
+  snap: { params: CaptureQuery & EnvCarrier; result: ExecuteResult };
+  verify: { params: { feature?: string } & EnvCarrier; result: VerifyFailure[] };
   invalidateSessions: { params: undefined; result: 'ok' };
   shutdown: { params: undefined; result: 'ok' };
 }

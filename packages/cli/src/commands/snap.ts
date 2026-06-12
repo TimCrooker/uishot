@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { parseDo } from '@uishot/core';
-import { getClient, projectRoot } from '../context.js';
+import { getClient, manifestEnv, projectRoot } from '../context.js';
 import { emit } from '../output.js';
 import { writeLastDo } from '../last-do.js';
 
@@ -34,6 +34,7 @@ export function registerSnap(program: Command): void {
         sizes: opts.sizes?.split(','),
         session: opts.session,
         diff: Boolean(opts.diff),
+        env: manifestEnv(root),
       });
       client.close();
       if (doSteps?.length && result.failures.length === 0) {

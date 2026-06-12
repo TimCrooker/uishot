@@ -56,23 +56,31 @@ export async function startServer(root: string, opts: ServerOptions): Promise<Ru
       case 'ping':
         return 'pong';
       case 'status': {
+        let sessions: string[] = [];
+        try {
+          sessions = Object.keys(loadManifest(root).sessions);
+        } catch {
+          // status stays useful even when the manifest can't resolve
+        }
         const status: DaemonStatus = {
           pid: process.pid,
           root,
           uptimeMs: Date.now() - startedAt,
-          sessions: Object.keys(loadManifest(root).sessions),
+          sessions,
         };
         return status;
       }
       case 'snap': {
-        // Manifest reloads fresh per job: picks up agent edits with zero restart.
-        const manifest = loadManifest(root);
-        const targets = resolveTargets(manifest, req.params as CaptureQuery);
+        // Manifest reloads fresh per job (picks up agent edits with zero
+        // restart); caller env wins over the daemon's spawn-time env.
+        const { env, ...query } = req.params as CaptureQuery & { env?: Record<string, string> };
+        const manifest = loadManifest(root, { ...process.env, ...env });
+        const targets = resolveTargets(manifest, query);
         return executeTargets(root, manifest, getSurface(), targets);
       }
       case 'verify': {
-        const manifest = loadManifest(root);
-        const { feature } = (req.params ?? {}) as { feature?: string };
+        const { feature, env } = (req.params ?? {}) as { feature?: string; env?: Record<string, string> };
+        const manifest = loadManifest(root, { ...process.env, ...env });
         const targets = resolveTargets(manifest, feature ? { feature } : { all: true });
         const res = await executeTargets(root, manifest, getSurface(), targets, { verifyOnly: true });
         return res.verified.map((v): VerifyFailure => {
@@ -82,8 +90,10 @@ export async function startServer(root: string, opts: ServerOptions): Promise<Ru
         });
       }
       case 'invalidateSessions': {
-        const manifest = loadManifest(root);
-        for (const name of Object.keys(manifest.sessions)) await getSurface().invalidateSession(name);
+        // Manifest-independent: drop the live surface and all cached auth state.
+        await surface?.dispose().catch(() => {});
+        surface = undefined;
+        rmSync(join(root, '.uishot', 'sessions'), { recursive: true, force: true });
         return 'ok';
       }
       case 'shutdown':
