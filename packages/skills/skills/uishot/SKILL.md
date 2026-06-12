@@ -35,3 +35,4 @@ The loop: edit code → (HMR applies it) → `uishot snap <screen> [--state s] [
 - Renamed selectors/testids? Run `uishot verify` (or `--feature <tag>`) before finishing; fix the recipes your rename broke.
 - Deleted a page? `uishot drift` flags the orphaned screen; remove it from the manifest.
 - Built a new modal/wizard/panel state while iterating? `promote` it before you move on — that's how the next session gets it for free.
+- readyWhen anchors must exist at EVERY viewport you capture — responsively-hidden elements (desktop sidebars, nav rails) are bad anchors because stateful captures rebuild per viewport. Prefer content that survives breakpoints (the page's search input, heading text).
