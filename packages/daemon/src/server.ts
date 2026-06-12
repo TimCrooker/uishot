@@ -1,7 +1,7 @@
 import { createServer, createConnection, type Server, type Socket } from 'node:net';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadManifest, resolveTargets, type CaptureQuery } from '@uishot/core';
+import { loadManifest, resolveTargets, type CaptureQuery } from 'uishot-core';
 import { BrowserSurface } from './browser-surface.js';
 import { executeTargets } from './executor.js';
 import { socketPath, type DaemonStatus, type RequestMessage, type ResponseMessage, type VerifyFailure } from './protocol.js';

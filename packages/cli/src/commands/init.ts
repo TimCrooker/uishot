@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
-import { MANIFEST_FILENAME } from '@uishot/core';
+import { MANIFEST_FILENAME } from 'uishot-core';
 import { projectRoot } from '../context.js';
 import { discoverRoutes } from '../discover/tanstack.js';
 
@@ -64,7 +64,7 @@ function discoverTanstack(root: string): string | undefined {
 }
 
 function installSkills(root: string): string[] {
-  const skillsPkgJson = createRequire(import.meta.url).resolve('@uishot/skills/package.json');
+  const skillsPkgJson = createRequire(import.meta.url).resolve('uishot-skills/package.json');
   const skillsDir = join(dirname(skillsPkgJson), 'skills');
   const installed: string[] = [];
   for (const name of ['uishot', 'uishot-init']) {

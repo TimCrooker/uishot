@@ -3,7 +3,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PNG } from 'pngjs';
-import { parseManifest } from '@uishot/core';
+import { parseManifest } from 'uishot-core';
 import { BrowserSurface } from '../src/browser-surface.js';
 
 const BASE = 'http://127.0.0.1:4799';

@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { RecipeStep } from '@uishot/core';
+import type { RecipeStep } from 'uishot-core';
 
 export interface LastDo {
   screen: string;

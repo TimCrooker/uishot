@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseManifest, resolveTargets, readIndex } from '@uishot/core';
+import { parseManifest, resolveTargets, readIndex } from 'uishot-core';
 import { BrowserSurface } from '../src/browser-surface.js';
 import { executeTargets } from '../src/executor.js';
 

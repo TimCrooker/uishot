@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseManifest } from '@uishot/core';
+import { parseManifest } from 'uishot-core';
 import { computeDrift, driftSnippet } from '../src/drift-report.js';
 
 const manifest = parseManifest(

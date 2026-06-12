@@ -38,21 +38,21 @@ importers:
 
   packages/cli:
     dependencies:
-      '@uishot/core':
-        specifier: workspace:*
-        version: link:../core
-      '@uishot/daemon':
-        specifier: workspace:*
-        version: link:../daemon
-      '@uishot/skills':
-        specifier: workspace:*
-        version: link:../skills
       commander:
         specifier: ^13.0.0
         version: 13.1.0
       playwright:
         specifier: ^1.50.0
         version: 1.60.0
+      uishot-core:
+        specifier: workspace:*
+        version: link:../core
+      uishot-daemon:
+        specifier: workspace:*
+        version: link:../daemon
+      uishot-skills:
+        specifier: workspace:*
+        version: link:../skills
       yaml:
         specifier: ^2.7.0
         version: 2.9.0
@@ -81,12 +81,12 @@ importers:
 
   packages/daemon:
     dependencies:
-      '@uishot/core':
-        specifier: workspace:*
-        version: link:../core
       playwright:
         specifier: ^1.50.0
         version: 1.60.0
+      uishot-core:
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@types/pngjs':
         specifier: ^6.0.5

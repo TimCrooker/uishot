@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import type { CaptureTarget, Manifest, Surface, SurfaceSession, ShotRecord } from '@uishot/core';
+import type { CaptureTarget, Manifest, Surface, SurfaceSession, ShotRecord } from 'uishot-core';
 import {
   diffPath,
   diffPngs,
@@ -9,7 +9,7 @@ import {
   shotPath,
   updateIndex,
   writeShot,
-} from '@uishot/core';
+} from 'uishot-core';
 
 export interface CaptureFailure {
   screen: string;

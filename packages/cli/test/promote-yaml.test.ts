@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseManifest } from '@uishot/core';
+import { parseManifest } from 'uishot-core';
 import { promoteIntoYaml } from '../src/promote-yaml.js';
 
 const YAML = `# my manifest comment

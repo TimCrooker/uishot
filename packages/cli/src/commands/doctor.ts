@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { chromium } from 'playwright';
 import { existsSync } from 'node:fs';
-import { loadManifest, ManifestError, type Manifest } from '@uishot/core';
+import { loadManifest, ManifestError, type Manifest } from 'uishot-core';
 import { getClient, manifestEnv, projectRoot } from '../context.js';
 
 interface DoctorOptions {

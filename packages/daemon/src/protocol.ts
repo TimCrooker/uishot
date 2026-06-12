@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { CaptureQuery } from '@uishot/core';
+import type { CaptureQuery } from 'uishot-core';
 import type { ExecuteResult, VerifiedState } from './executor.js';
 
 /**

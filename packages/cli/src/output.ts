@@ -1,4 +1,4 @@
-import type { ExecuteResult } from '@uishot/daemon';
+import type { ExecuteResult } from 'uishot-daemon';
 
 /**
  * Print an execute result for an agent consumer.

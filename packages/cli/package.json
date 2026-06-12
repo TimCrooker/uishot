@@ -15,9 +15,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@uishot/core": "workspace:*",
-    "@uishot/daemon": "workspace:*",
-    "@uishot/skills": "workspace:*",
+    "uishot-core": "workspace:*",
+    "uishot-daemon": "workspace:*",
+    "uishot-skills": "workspace:*",
     "commander": "^13.0.0",
     "playwright": "^1.50.0",
     "yaml": "^2.7.0"

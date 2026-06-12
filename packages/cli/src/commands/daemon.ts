@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DaemonClient } from '@uishot/daemon';
+import { DaemonClient } from 'uishot-daemon';
 import { projectRoot } from '../context.js';
 
 export function registerDaemon(program: Command): void {

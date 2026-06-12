@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MANIFEST_FILENAME } from '@uishot/core';
+import { MANIFEST_FILENAME } from 'uishot-core';
 
 const CLI = resolve(fileURLToPath(new URL('.', import.meta.url)), '../dist/index.js');
 const BASE = 'http://127.0.0.1:4798';

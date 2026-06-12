@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { MANIFEST_FILENAME } from '@uishot/core';
+import { MANIFEST_FILENAME } from 'uishot-core';
 import { startServer, type RunningServer } from '../src/server.js';
 import { DaemonClient } from '../src/client.js';
 

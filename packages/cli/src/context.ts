@@ -1,11 +1,11 @@
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MANIFEST_FILENAME, referencedEnvVars } from '@uishot/core';
-import { DaemonClient } from '@uishot/daemon';
+import { MANIFEST_FILENAME, referencedEnvVars } from 'uishot-core';
+import { DaemonClient } from 'uishot-daemon';
 
 export function daemonBinPath(): string {
-  return createRequire(import.meta.url).resolve('@uishot/daemon/bin');
+  return createRequire(import.meta.url).resolve('uishot-daemon/bin');
 }
 
 /**

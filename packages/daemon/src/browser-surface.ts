@@ -9,7 +9,7 @@ import type {
   Surface,
   SurfaceSession,
   Viewport,
-} from '@uishot/core';
+} from 'uishot-core';
 
 // Generous enough for a dev server transforming a heavy app under parallel
 // load; a genuinely broken selector still fails with clear evidence.

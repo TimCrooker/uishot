@@ -1,4 +1,4 @@
-# @uishot/core
+# uishot-core
 
 ## 0.1.0
 

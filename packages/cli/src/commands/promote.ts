@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MANIFEST_FILENAME } from '@uishot/core';
+import { MANIFEST_FILENAME } from 'uishot-core';
 import { projectRoot } from '../context.js';
 import { readLastDo } from '../last-do.js';
 import { promoteIntoYaml } from '../promote-yaml.js';

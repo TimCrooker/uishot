@@ -1,4 +1,4 @@
-# @uishot/skills
+# uishot-skills
 
 ## 0.1.0
 

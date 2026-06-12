@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { loadManifest } from '@uishot/core';
+import { loadManifest } from 'uishot-core';
 import { projectRoot } from '../context.js';
 
 interface ListOptions {

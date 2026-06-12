@@ -9,6 +9,6 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @uishot/core@0.1.0
-  - @uishot/daemon@0.1.0
-  - @uishot/skills@0.1.0
+  - uishot-core@0.1.0
+  - uishot-daemon@0.1.0
+  - uishot-skills@0.1.0

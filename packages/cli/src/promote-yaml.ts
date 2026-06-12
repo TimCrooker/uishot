@@ -1,5 +1,5 @@
 import { parseDocument } from 'yaml';
-import type { RecipeStep } from '@uishot/core';
+import type { RecipeStep } from 'uishot-core';
 
 /**
  * Insert steps as screens.<id>.states.<name> in the manifest YAML text,

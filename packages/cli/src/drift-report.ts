@@ -1,4 +1,4 @@
-import type { Manifest } from '@uishot/core';
+import type { Manifest } from 'uishot-core';
 import type { DiscoveredRoutes } from './discover/tanstack.js';
 
 export interface DriftReport {

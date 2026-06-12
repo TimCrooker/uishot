@@ -16,7 +16,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @uishot/daemon exec playwright install chromium --with-deps
+      - run: pnpm --filter uishot-daemon exec playwright install chromium --with-deps
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test

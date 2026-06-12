@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { parseDo } from '@uishot/core';
+import { parseDo } from 'uishot-core';
 import { getClient, manifestEnv, projectRoot } from '../context.js';
 import { emit } from '../output.js';
 import { writeLastDo } from '../last-do.js';

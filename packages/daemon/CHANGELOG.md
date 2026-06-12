@@ -1,4 +1,4 @@
-# @uishot/daemon
+# uishot-daemon
 
 ## 0.1.0
 
@@ -9,4 +9,4 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @uishot/core@0.1.0
+  - uishot-core@0.1.0
