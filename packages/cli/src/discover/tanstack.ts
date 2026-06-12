@@ -15,6 +15,9 @@ export function tanstackRoutes(files: string[]): DiscoveredRoutes {
   for (const file of files) {
     const noExt = file.replace(/\.(tsx|ts|jsx|js)$/, '');
     if (noExt.endsWith('__root') || noExt.includes('.lazy')) continue;
+    if (/\.(test|spec)$/.test(noExt) || noExt.includes('.test.') || noExt.includes('.spec.')) continue;
+    // TanStack excludes `-`-prefixed files/dirs from routing entirely.
+    if (noExt.split(/[/.]/).some((s) => s.startsWith('-'))) continue;
     const segments = noExt
       .split(/[/.]/)
       .filter((s) => s.length > 0 && !s.startsWith('_') && s !== 'route' && s !== 'index');

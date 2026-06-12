@@ -11,6 +11,10 @@ describe('tanstackRoutes', () => {
       '_authenticated/items.$itemId.tsx',
       '_authenticated/orders/index.tsx',
       '_authenticated/settings.billing.tsx',
+      '_authenticated/-acceptInvitationOrgSync.tsx',
+      '_authenticated/-acceptInvitationOrgSync.test.ts',
+      '_authenticated/admin/-settings-audit.test.tsx',
+      '_authenticated/billing.test.tsx',
     ]);
     expect(r.static).toEqual([
       { id: 'home', route: '/' },
