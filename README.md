@@ -106,6 +106,8 @@ A per-project daemon (autostarted by the first CLI call, idle-shutdown after 30 
 ## FAQ
 
 - **Selector rot?** `uishot verify` replays every recipe headlessly — run it in CI. Prefer `data-testid` and role selectors in recipes.
+- **Sweeps die with login bounces after repeated runs?** Two known dynamics with rotating-refresh-token auth: (1) concurrent page boots race the rotation — set `app.parallelism: 1`; (2) every SPA boot hits the app's token-refresh endpoint, and back-to-back full sweeps can trip the API's rate limit on it — raise that limit in your dev environment. uishot serializes boots and self-heals single bounces, but it cannot out-engineer a 429 from your own API.
+- **Selectors from test files don't work.** `data-testid`s that only exist in `*.test.tsx` mocks are not in production DOM. Verify selectors against the running app (snap it and look), not the test suite.
 - **`=` in a fill value?** The `--do` parser splits on the last `=`; values containing `=` need a named YAML state.
 - **Monorepo?** Run uishot from the app directory that owns the manifest (one manifest per app surface).
 - **Native mobile?** v1 is browser-only. Capture targets sit behind a `Surface` interface; a simulator surface is the planned second implementation.
