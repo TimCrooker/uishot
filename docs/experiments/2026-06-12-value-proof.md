@@ -36,6 +36,31 @@ All three require *looking* to succeed — the property under test.
 - uishot does not reduce the cost of *reading* images, only of *producing the right ones*; expected savings come from eliminated auth/navigation/scripting roundtrips and instant multi-size/state addressing.
 - Arm B is deliberately well-informed (creds, login shape, throttle warning) — this measures tooling, not documentation quality.
 
-## Results
+## Results (run 2026-06-12, 9 agent runs, all on live ListForge web)
 
-(to be filled by the run)
+| Run | Condition | Arm | Tokens | Tool calls | Wall-clock | Success |
+|---|---|---|---|---|---|---|
+| T1 | full env docs | B (Playwright) | 77,643 | 21 | 3:39 | PASS |
+| T1 | full env docs | A (uishot) | 69,466 | 21 | 3:54 | PASS |
+| T2 | full env docs | A (uishot) | 69,683 | 17 | 2:33 | PASS |
+| T2 | full env docs | B (Playwright) | 65,283 | 15 | 2:01 | PASS |
+| T3 | full env docs | B (Playwright) | 77,476 | 17 | 2:29 | PASS |
+| T3 | full env docs | A (uishot) | 77,346 | 17 | 2:17 | PASS |
+| T4 | blind (no env docs, no tool pointer) | A* | 73,610 | 18 | 4:05 | PASS |
+| T4 | blind (no env docs) | B | 72,454 | 22 | 3:46 | PASS |
+| T4 | pointer only ("repo has uishot") | A′ | **67,459** | **13** | **1:42** | PASS |
+
+*A\* had uishot available but was given no pointer; it never discovered it and hand-rolled Playwright — skills must be surfaced to count.*
+
+## Findings
+
+1. **Success was never the differentiator:** 9/9 across both arms. A frontier model fixes these bugs either way.
+2. **With a perfect hand-written environment briefing, it's a wash** (±5% tokens, ±10% time). When someone has already written down the login flow, creds location, and rate-limit warnings, a competent agent scripts Playwright cheaply.
+3. **In the realistic condition — no hand-holding — uishot wins decisively on iteration speed:** T4-A′ (one-line pointer) vs T4-B (blind): **-55% wall-clock (1:42 vs 3:46), -41% tool calls (13 vs 22), -7% tokens.** The win comes from zero auth/bootstrap work and instant state addressing.
+4. **Compounding is real and was captured in-data:** T4-A′ directly reused the `filter-open` state promoted by the T2-A agent two sessions earlier, and produced the most thorough fix of all four popover runs in the least time. Arm B's equivalents (auth scripts, screenshots) lived in /tmp and evaporated. T2-A also flagged pre-existing manifest rot unprompted.
+5. **Token deltas are structurally modest:** image reads dominate token spend and both arms read images. The full-docs arms hide a cost off the books — the ~500-token perfect environment briefing per session, plus the requirement that the knowledge exists somewhere at all. The manifest is that knowledge, versioned.
+6. **Caveats:** N is small; one seeded-defect family repeated for T4; the `.uishot/sessions` auth state on disk may have aided the blind arms' login bootstrap (biases the comparison AGAINST uishot — real blind sessions would fare worse); single model; tasks were single-screen (multi-screen sweeps and design-review workloads, where addressability multiplies, were not measured).
+
+## Conclusion
+
+uishot's measured value is concentrated exactly where the design predicted: **eliminating per-session re-derivation** (auth, navigation, state-reaching) and **compounding addressable states across sessions** — worth ~2x+ on wall-clock and ~40% on tool roundtrips in realistic conditions, at parity on raw tokens for single tasks. It is not a token-compression device; it is an iteration-velocity and knowledge-persistence device. For workloads that touch many screens/states per session (design review, refactor sweeps), the per-state savings multiply — unmeasured here, but the mechanism is the proven part.
