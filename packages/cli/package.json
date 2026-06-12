@@ -1,0 +1,20 @@
+{
+  "name": "uishot",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Instant, addressable UI screenshots for AI agents",
+  "bin": { "uishot": "./dist/index.js" },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@uishot/core": "workspace:*",
+    "@uishot/daemon": "workspace:*",
+    "@uishot/skills": "workspace:*",
+    "commander": "^13.0.0",
+    "yaml": "^2.7.0"
+  }
+}
