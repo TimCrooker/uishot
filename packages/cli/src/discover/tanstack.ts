@@ -1,7 +1,39 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
+
 export interface DiscoveredRoutes {
   static: { id: string; route: string }[];
   /** Param routes need a representative id; emitted as commented manifest entries. */
   param: string[];
+}
+
+function walkFiles(dir: string, base: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walkFiles(full, base));
+    else out.push(relative(base, full));
+  }
+  return out;
+}
+
+/**
+ * Discover routes from the repo's router conventions, or undefined when no
+ * supported convention is detected (TanStack Router file routes for now).
+ */
+export function discoverRoutes(root: string): DiscoveredRoutes | undefined {
+  const routesDir = join(root, 'src', 'routes');
+  let pkg: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+  try {
+    pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  } catch {
+    return undefined;
+  }
+  const hasTanstack = Boolean(
+    pkg.dependencies?.['@tanstack/react-router'] ?? pkg.devDependencies?.['@tanstack/react-router'],
+  );
+  if (!hasTanstack || !existsSync(routesDir)) return undefined;
+  return tanstackRoutes(walkFiles(routesDir, routesDir));
 }
 
 /**

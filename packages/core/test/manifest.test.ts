@@ -84,6 +84,14 @@ describe('parseManifest', () => {
   });
 });
 
+describe('lenient parsing', () => {
+  it('keeps unset vars as literal placeholders instead of throwing', () => {
+    const m = parseManifest(VALID, {}, { lenient: true });
+    expect(m.baseUrl).toBe('${TEST_APP_URL}');
+    expect(Object.keys(m.screens)).toEqual(['items.list']);
+  });
+});
+
 describe('referencedEnvVars', () => {
   it('lists unique ${VAR} names in manifest text', () => {
     expect(referencedEnvVars('a: ${FOO}\nb: ${BAR}\nc: ${FOO}')).toEqual(['FOO', 'BAR']);

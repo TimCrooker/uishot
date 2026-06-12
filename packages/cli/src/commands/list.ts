@@ -14,7 +14,8 @@ export function registerList(program: Command): void {
     .option('--feature <tag>', 'filter to one feature')
     .option('--json')
     .action((opts: ListOptions) => {
-      const manifest = loadManifest(projectRoot());
+      // Lenient: listing what's addressable must work before env vars are wired.
+      const manifest = loadManifest(projectRoot(), process.env, { lenient: true });
       const screens = Object.values(manifest.screens).filter(
         (s) => !opts.feature || s.feature === opts.feature,
       );

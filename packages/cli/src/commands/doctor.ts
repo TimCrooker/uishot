@@ -41,7 +41,9 @@ export function registerDoctor(program: Command): void {
               await fetch(manifest.baseUrl, { signal: controller.signal });
             } catch {
               throw new Error(
-                `dev server not reachable at ${manifest.baseUrl}. Start it, or fix the baseUrl env var.`,
+                `dev server not reachable at ${manifest.baseUrl}. Start it, or fix the baseUrl env var. ` +
+                  `(If the server claims it's running: some dev servers bind IPv6-only — try http://localhost:PORT ` +
+                  `instead of 127.0.0.1, or start the server with --host.)`,
               );
             } finally {
               clearTimeout(timer);

@@ -16,6 +16,7 @@ The loop: edit code → (HMR applies it) → `uishot snap <screen> [--state s] [
 - `uishot diff <screen>` — capture + % changed vs previous capture + .diff.png
 - `uishot feature <tag>` / `uishot all` — sweeps
 - `uishot verify` — replay all recipes, find rot
+- `uishot drift` — diff manifest vs codebase routes (uncovered routes print as pasteable YAML)
 - `uishot doctor` — when anything is weird (auth, dev server, daemon); `--reauth` to force fresh sessions
 
 ## Rules
@@ -26,3 +27,11 @@ The loop: edit code → (HMR applies it) → `uishot snap <screen> [--state s] [
 - `--do` values cannot contain `=` (parser splits on last `=`); use a named YAML state for those.
 - New screen you're building? Add it to uishot.config.yaml (screens.<id>: route, feature, readyWhen) BEFORE iterating, so it's addressable for the rest of the session and for the next agent.
 - If a state needs >5 recipe steps, the app should expose it more directly (deep-linkable URL, query param) — suggest that to the user instead of writing a long recipe.
+- Selectors must exist in PRODUCTION DOM. data-testids that only appear in *.test.tsx mocks will pass your grep and fail live — when recording, trust the snap, not the test suite.
+- Persisted UI state (panels that remember open/closed in localStorage) makes toggle-clicks non-deterministic: seed the baseline instead — `storage:key=value` then `goto:/route`.
+
+## Keeping the manifest in line (evolving codebase)
+- Added or renamed a route in this change? Run `uishot drift` and add the screen it suggests — same diff, not later.
+- Renamed selectors/testids? Run `uishot verify` (or `--feature <tag>`) before finishing; fix the recipes your rename broke.
+- Deleted a page? `uishot drift` flags the orphaned screen; remove it from the manifest.
+- Built a new modal/wizard/panel state while iterating? `promote` it before you move on — that's how the next session gets it for free.

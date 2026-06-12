@@ -6,14 +6,13 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
   writeFileSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { MANIFEST_FILENAME } from '@uishot/core';
 import { projectRoot } from '../context.js';
-import { tanstackRoutes } from '../discover/tanstack.js';
+import { discoverRoutes } from '../discover/tanstack.js';
 
 const TEMPLATE = `# uishot manifest — every screen/state here is instantly capturable.
 # Docs: https://github.com/TimCrooker/uishot
@@ -47,30 +46,9 @@ screens: {}
   #       - waitFor: "[role=dialog]"
 `;
 
-function walkFiles(dir: string, base: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...walkFiles(full, base));
-    else out.push(relative(base, full));
-  }
-  return out;
-}
-
 function discoverTanstack(root: string): string | undefined {
-  const routesDir = join(root, 'src', 'routes');
-  let pkg: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
-  try {
-    pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
-  } catch {
-    return undefined;
-  }
-  const hasTanstack = Boolean(
-    pkg.dependencies?.['@tanstack/react-router'] ?? pkg.devDependencies?.['@tanstack/react-router'],
-  );
-  if (!hasTanstack || !existsSync(routesDir)) return undefined;
-  const discovered = tanstackRoutes(walkFiles(routesDir, routesDir));
-  if (discovered.static.length === 0 && discovered.param.length === 0) return undefined;
+  const discovered = discoverRoutes(root);
+  if (!discovered || (discovered.static.length === 0 && discovered.param.length === 0)) return undefined;
   const lines = ['screens:'];
   for (const r of discovered.static) {
     lines.push(`  ${r.id}:`);
@@ -130,11 +108,15 @@ export function registerInit(program: Command): void {
       const installed = installSkills(root);
       for (const path of installed) console.log(`installed ${path}`);
 
+      console.log('\nNext steps:');
+      let step = 1;
       if (!existsSync(chromium.executablePath())) {
-        console.log('Next: npx playwright install chromium');
+        console.log(`  ${step++}. npx playwright install chromium`);
       }
-      console.log(
-        'Next: set the baseUrl env var, configure a session, add screens — the uishot-init skill walks an agent through it.',
-      );
+      console.log(`  ${step++}. Set the baseUrl env var (e.g. export APP_URL=http://localhost:3000)`);
+      console.log(`  ${step++}. Add a session + screens to ${MANIFEST_FILENAME} (the uishot-init skill walks an agent through it)`);
+      console.log(`  ${step++}. uishot doctor   # proves manifest, dev server, browser, and auth end-to-end`);
+      console.log(`  ${step}. uishot snap <screen>   # then iterate: edit -> snap -> look`);
+      console.log('Keep it honest as the app evolves: uishot drift (route coverage) + uishot verify (recipe rot).');
     });
 }

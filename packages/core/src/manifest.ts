@@ -89,10 +89,15 @@ export function normalizeStep(raw: Record<string, unknown>): RecipeStep {
   }
 }
 
-function substituteEnv(text: string, env: Record<string, string | undefined>): string {
-  return text.replace(/\$\{(\w+)\}/g, (_, name: string) => {
+function substituteEnv(
+  text: string,
+  env: Record<string, string | undefined>,
+  lenient: boolean,
+): string {
+  return text.replace(/\$\{(\w+)\}/g, (match, name: string) => {
     const v = env[name];
     if (v === undefined) {
+      if (lenient) return match;
       throw new ManifestError(
         `Environment variable ${name} is referenced in ${MANIFEST_FILENAME} but not set. ` +
           `Set it before running uishot (e.g. ${name}=... uishot snap ...).`,
@@ -113,11 +118,20 @@ function collectUnknownKeys(error: z.ZodError): string[] {
   return [...new Set(keys)];
 }
 
+export interface ParseOptions {
+  /**
+   * Leave unset ${VARS} as literal placeholders instead of throwing. For
+   * read-only commands (list, drift) that must work before the env is wired.
+   */
+  lenient?: boolean;
+}
+
 export function parseManifest(
   yamlText: string,
   env: Record<string, string | undefined> = process.env,
+  opts: ParseOptions = {},
 ): Manifest {
-  const substituted = substituteEnv(yamlText, env);
+  const substituted = substituteEnv(yamlText, env, opts.lenient ?? false);
   let data: unknown;
   try {
     data = parse(substituted);
@@ -186,7 +200,11 @@ export function referencedEnvVars(yamlText: string): string[] {
   return [...new Set([...yamlText.matchAll(/\$\{(\w+)\}/g)].map((m) => m[1]!))];
 }
 
-export function loadManifest(rootDir: string, env: Record<string, string | undefined> = process.env): Manifest {
+export function loadManifest(
+  rootDir: string,
+  env: Record<string, string | undefined> = process.env,
+  opts: ParseOptions = {},
+): Manifest {
   const path = join(rootDir, MANIFEST_FILENAME);
   let text: string;
   try {
@@ -194,5 +212,5 @@ export function loadManifest(rootDir: string, env: Record<string, string | undef
   } catch {
     throw new ManifestError(`No ${MANIFEST_FILENAME} found at ${path}. Run \`uishot init\` to create one.`);
   }
-  return parseManifest(text, env);
+  return parseManifest(text, env, opts);
 }

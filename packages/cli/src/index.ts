@@ -9,6 +9,7 @@ import { registerPromote } from './commands/promote.js';
 import { registerDaemon } from './commands/daemon.js';
 import { registerDoctor } from './commands/doctor.js';
 import { registerInit } from './commands/init.js';
+import { registerDrift } from './commands/drift.js';
 
 const program = new Command('uishot').description('Instant, addressable UI screenshots for agents');
 
@@ -21,6 +22,7 @@ registerPromote(program);
 registerDaemon(program);
 registerDoctor(program);
 registerInit(program);
+registerDrift(program);
 
 program.parseAsync(process.argv).catch((err: Error) => {
   console.error(err.message);

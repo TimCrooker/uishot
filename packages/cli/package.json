@@ -11,7 +11,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm",
+    "build": "tsup src/index.ts --format esm --clean",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
