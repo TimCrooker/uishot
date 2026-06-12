@@ -74,23 +74,29 @@ export function registerDoctor(program: Command): void {
             const names = Object.keys(manifest.sessions);
             if (names.length === 0) return 'none configured';
             const client = await getClient(root);
-            // A 1-screen snap per session proves auth end-to-end (login bounce would fail it).
-            const firstScreen = Object.keys(manifest.screens)[0];
-            if (!firstScreen) {
-              client.close();
-              return 'no screens to validate against';
-            }
+            // A 1-screen snap per session proves auth end-to-end (login bounce
+            // would fail it). Each session is validated against a screen that
+            // actually uses it; unreferenced sessions are skipped.
+            const validated: string[] = [];
+            const skipped: string[] = [];
             for (const name of names) {
+              const screen = Object.values(manifest.screens).find((s) => (s.session ?? 'default') === name);
+              if (!screen) {
+                skipped.push(name);
+                continue;
+              }
               const res = await client.request('snap', {
-                screen: firstScreen,
+                screen: screen.id,
                 session: name,
                 sizes: [manifest.defaultSizes[0]!],
                 env: manifestEnv(root),
               });
               if (res.failures.length > 0) throw new Error(`session "${name}": ${res.failures[0]!.message}`);
+              validated.push(name);
             }
             client.close();
-            return `${names.join(', ')} all authenticate`;
+            const skipNote = skipped.length > 0 ? ` (${skipped.join(', ')}: no screen uses it, skipped)` : '';
+            return `${validated.join(', ') || 'none'} authenticate${skipNote}`;
           },
         },
       ];
