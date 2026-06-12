@@ -76,7 +76,7 @@ screens:
         - waitFor: "[role=dialog]"
 ```
 
-**Step vocabulary** (intentionally tiny): `goto`, `click`, `fill`, `select`, `hover`, `press`, `scrollTo`, `waitFor`, `waitMs` (capped at 5000ms, discouraged). If a state needs more than ~5 steps, the app should expose it more directly (deep-linkable URL).
+**Step vocabulary** (intentionally tiny): `goto`, `click`, `fill`, `select`, `hover`, `press`, `scrollTo`, `waitFor`, `waitMs` (capped at 5000ms, discouraged), `storage` (seed a localStorage key — pair with a `goto` so the app boots from it; the deterministic answer to persisted UI state like remembered-open panels, where a toggle-click would flip an unknown baseline). If a state needs more than ~5 steps, the app should expose it more directly (deep-linkable URL).
 
 `${VAR}` anywhere in the manifest resolves from the environment at run time. Auth state is cached per session (`.uishot/sessions/`); a login-bounce triggers one automatic re-auth and retry.
 

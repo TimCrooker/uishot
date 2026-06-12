@@ -267,6 +267,15 @@ class BrowserSession implements SurfaceSession {
         }
         case 'waitMs':
           return await this.page.waitForTimeout(Number(step.value));
+        case 'storage': {
+          // Seeds localStorage; the app reads it on its NEXT boot, so recipes
+          // pair this with a goto to re-load from the deterministic baseline.
+          await this.page.evaluate(
+            ([k, v]) => localStorage.setItem(k!, v!),
+            [step.selector, step.value] as const,
+          );
+          return;
+        }
       }
     } catch (err) {
       throw new Error(

@@ -3,8 +3,8 @@ import { ManifestError } from './manifest.js';
 
 const SELECTOR_ACTIONS = ['click', 'hover', 'scrollTo', 'waitFor'] as const;
 const VALUE_ACTIONS = ['press', 'waitMs', 'goto'] as const;
-const KV_ACTIONS = ['fill', 'select'] as const;
-const ALL = ['goto', 'click', 'fill', 'select', 'hover', 'press', 'scrollTo', 'waitFor', 'waitMs'];
+const KV_ACTIONS = ['fill', 'select', 'storage'] as const;
+const ALL = ['goto', 'click', 'fill', 'select', 'hover', 'press', 'scrollTo', 'waitFor', 'waitMs', 'storage'];
 
 /** Parse a CLI --do string like "click:[data-testid=x]" or "fill:#qty=3" into a RecipeStep. */
 export function parseDo(input: string): RecipeStep {

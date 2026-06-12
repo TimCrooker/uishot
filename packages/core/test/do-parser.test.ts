@@ -35,6 +35,14 @@ describe('parseDo', () => {
     expect(parseDo('waitMs:99999')).toEqual({ action: 'waitMs', value: '5000' });
   });
 
+  it('parses storage seeds', () => {
+    expect(parseDo('storage:chat-sidebar-collapsed=false')).toEqual({
+      action: 'storage',
+      selector: 'chat-sidebar-collapsed',
+      value: 'false',
+    });
+  });
+
   it('rejects unknown actions with available vocabulary in the message', () => {
     expect(() => parseDo('tap:#x')).toThrowError(/tap.*goto, click, fill/s);
   });

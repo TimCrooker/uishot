@@ -53,6 +53,18 @@ describe('parseManifest', () => {
     expect(() => parseManifest(bad, { TEST_APP_URL: 'x' })).toThrowError(/clickHard/);
   });
 
+  it('normalizes storage steps', () => {
+    const m = parseManifest(
+      VALID.replace('- waitFor: "[role=dialog]"', '- storage: ["panel-open", "true"]'),
+      { TEST_APP_URL: 'x' },
+    );
+    expect(m.screens['items.list']!.states['filters-open']![1]).toEqual({
+      action: 'storage',
+      selector: 'panel-open',
+      value: 'true',
+    });
+  });
+
   it('caps waitMs at 5000', () => {
     const m = parseManifest(VALID.replace('- waitFor: "[role=dialog]"', '- waitMs: 99999'), {
       TEST_APP_URL: 'x',

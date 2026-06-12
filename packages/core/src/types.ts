@@ -7,13 +7,14 @@ export type RecipeAction =
   | 'press'
   | 'scrollTo'
   | 'waitFor'
-  | 'waitMs';
+  | 'waitMs'
+  | 'storage';
 
 export interface RecipeStep {
   action: RecipeAction;
-  /** click, fill, select, hover, scrollTo, waitFor */
+  /** click, fill, select, hover, scrollTo, waitFor; storage (localStorage key) */
   selector?: string;
-  /** fill, select (option value), press (key), waitMs (ms), goto (route) */
+  /** fill, select (option value), press (key), waitMs (ms), goto (route), storage (value) */
   value?: string;
 }
 

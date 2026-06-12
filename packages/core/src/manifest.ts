@@ -19,6 +19,10 @@ const stepSchema = z.union([
   z.object({ scrollTo: SEL }).strict(),
   z.object({ waitFor: SEL }).strict(),
   z.object({ waitMs: z.number().int().positive() }).strict(),
+  // Seed a localStorage key, then re-navigate (goto) so the app boots from a
+  // deterministic baseline. The cure for persisted UI state (open panels,
+  // collapsed sidebars) that makes toggle-clicks non-deterministic.
+  z.object({ storage: z.tuple([z.string(), z.string()]) }).strict(),
 ]);
 
 const rawSchema = z.object({
@@ -70,7 +74,8 @@ export function normalizeStep(raw: Record<string, unknown>): RecipeStep {
     case 'waitMs':
       return { action: 'waitMs', value: String(Math.min(v as number, 5000)) };
     case 'fill':
-    case 'select': {
+    case 'select':
+    case 'storage': {
       const [selector, value] = v as [string, string];
       return { action: key, selector, value };
     }
