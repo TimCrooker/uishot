@@ -11,6 +11,12 @@ export interface SurfaceSession {
   currentUrl(): Promise<string>;
   capture(viewport: Viewport): Promise<CapturedImage>;
   resetErrorCount(): void;
+  /**
+   * Optional late-bounce recovery: if the surface detects it drifted to an
+   * auth/login state after navigation, recover (re-auth + re-navigate) and
+   * return true so the caller can retry its readiness wait once.
+   */
+  recoverIfBounced?(): Promise<boolean>;
   dispose(): Promise<void>;
 }
 
