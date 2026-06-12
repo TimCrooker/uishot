@@ -17,6 +17,7 @@ const WAIT_TIMEOUT = 10000;
 export class BrowserSurface implements Surface {
   private browser?: Browser;
   private contexts = new Map<string, BrowserContext>();
+  private reauths = new Map<string, Promise<void>>();
 
   constructor(private rootDir: string) {}
 
@@ -53,15 +54,31 @@ export class BrowserSurface implements Surface {
     return ctx;
   }
 
+  /**
+   * Re-auth runs session setup in the SAME shared context (never closes it —
+   * sibling pages from parallel workers stay alive) and is mutexed per
+   * session so concurrent bounces trigger a single login.
+   */
+  private reauthContext(name: string, ctx: BrowserContext, config: SessionConfig, manifest: Manifest): Promise<void> {
+    let inflight = this.reauths.get(name);
+    if (!inflight) {
+      inflight = (async () => {
+        await runSessionSetup(ctx, config, manifest);
+        await ctx.storageState({ path: this.statePath(name) });
+      })().finally(() => this.reauths.delete(name));
+      this.reauths.set(name, inflight);
+    }
+    return inflight;
+  }
+
   async openSession(name: string, config: SessionConfig, manifest: Manifest): Promise<SurfaceSession> {
     const ctx = await this.ensureContext(name, config, manifest);
     const page = await ctx.newPage();
     return new BrowserSession(page, manifest.baseUrl, {
       loginRoute: config.loginRoute,
       reauth: async () => {
-        await this.invalidateSession(name);
-        const fresh = await this.ensureContext(name, config, manifest);
-        return fresh.newPage();
+        await this.reauthContext(name, ctx, config, manifest);
+        return ctx.newPage();
       },
     });
   }
