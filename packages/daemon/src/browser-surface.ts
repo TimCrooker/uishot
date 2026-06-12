@@ -16,35 +16,32 @@ import type {
 const ACT_TIMEOUT = 10000;
 const WAIT_TIMEOUT = 15000;
 
-interface ColdGate {
-  done: Promise<void>;
-  release: () => void;
-  claimed: boolean;
-}
-
 export class BrowserSurface implements Surface {
   private browser?: Browser;
   private contexts = new Map<string, BrowserContext>();
   private reauths = new Map<string, Promise<void>>();
-  private coldGates = new Map<string, ColdGate>();
+  private navLocks = new Map<string, Promise<void>>();
 
   constructor(private rootDir: string) {}
 
   /**
-   * Cold-start gate: the first navigation in a freshly-opened session context
-   * runs alone (settling any refresh-token rotation / re-auth) before parallel
-   * workers fan out. Without this, N cold pages race the token refresh and
-   * rotating-cookie backends revoke each other's sessions.
+   * Per-session navigation lock. Every SPA page-boot re-runs the app's token
+   * refresh; concurrent boots in one session race a rotating refresh cookie
+   * and trip reuse-revocation, killing the whole session family. Navigations
+   * serialize per session; readiness waits, recipes, and captures still
+   * overlap across workers.
    */
-  private gateFor(name: string): ColdGate {
-    let gate = this.coldGates.get(name);
-    if (!gate) {
-      let release!: () => void;
-      const done = new Promise<void>((r) => (release = r));
-      gate = { done, release, claimed: false };
-      this.coldGates.set(name, gate);
+  private async withNavLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    const prev = this.navLocks.get(name) ?? Promise.resolve();
+    let release!: () => void;
+    const mine = new Promise<void>((r) => (release = r));
+    this.navLocks.set(name, prev.then(() => mine));
+    await prev;
+    try {
+      return await fn();
+    } finally {
+      release();
     }
-    return gate;
   }
 
   private statePath(name: string): string {
@@ -59,7 +56,6 @@ export class BrowserSurface implements Surface {
   async invalidateSession(name: string): Promise<void> {
     await this.contexts.get(name)?.close().catch(() => {});
     this.contexts.delete(name);
-    this.coldGates.delete(name);
     rmSync(this.statePath(name), { force: true });
   }
 
@@ -103,7 +99,7 @@ export class BrowserSurface implements Surface {
     const page = await ctx.newPage();
     return new BrowserSession(page, manifest.baseUrl, {
       loginRoute: config.loginRoute,
-      gate: () => this.gateFor(name),
+      lockNav: (fn) => this.withNavLock(name, fn),
       reauth: async () => {
         await this.reauthContext(name, ctx, config, manifest);
         return ctx.newPage();
@@ -154,7 +150,7 @@ export async function runSessionSetup(
       if (!page.url().includes(loginRoute)) return;
       const session = new BrowserSession(page, manifest.baseUrl, {
         loginRoute: undefined,
-        gate: undefined,
+        lockNav: undefined,
         reauth: async () => page,
       });
       for (const step of config.recipe) await session.act(step);
@@ -167,7 +163,6 @@ export async function runSessionSetup(
 class BrowserSession implements SurfaceSession {
   private consoleErrors = 0;
   private lastRoute: string | undefined;
-  private coldNavDone = false;
 
   constructor(
     private page: Page,
@@ -175,7 +170,7 @@ class BrowserSession implements SurfaceSession {
     private opts: {
       reauth: () => Promise<Page>;
       loginRoute: string | undefined;
-      gate: (() => ColdGate) | undefined;
+      lockNav: (<T>(fn: () => Promise<T>) => Promise<T>) | undefined;
     },
   ) {
     this.attachListeners();
@@ -192,30 +187,20 @@ class BrowserSession implements SurfaceSession {
 
   async goto(route: string): Promise<void> {
     this.lastRoute = route;
-    if (!this.coldNavDone && this.opts.gate) {
-      const gate = this.opts.gate();
-      if (gate.claimed) {
-        // Another page is settling this session's cold start — wait for it.
-        await gate.done;
-        this.coldNavDone = true;
-        return this.performGoto(route);
-      }
-      gate.claimed = true;
-      try {
-        await this.performGoto(route);
-      } finally {
-        this.coldNavDone = true;
-        gate.release();
-      }
-      return;
+    if (this.opts.lockNav) {
+      await this.opts.lockNav(() => this.performGoto(route));
+    } else {
+      await this.performGoto(route);
     }
-    this.coldNavDone = true;
-    await this.performGoto(route);
   }
 
   private async performGoto(route: string): Promise<void> {
     const target = route.startsWith('http') ? route : this.baseUrl + route;
     await this.page.goto(target, { waitUntil: 'load' });
+    // Settle the SPA boot (incl. its token-refresh call) INSIDE the nav lock:
+    // releasing at 'load' would let the next page's refresh race this one's
+    // rotation. Also surfaces post-hydration login redirects immediately.
+    await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     // Deterministic self-heal: bounced to login means stale auth. Re-auth once, retry.
     const { loginRoute } = this.opts;
     if (loginRoute && route !== loginRoute && this.page.url().includes(loginRoute)) {
@@ -228,6 +213,7 @@ class BrowserSession implements SurfaceSession {
     this.page = await this.opts.reauth();
     this.attachListeners();
     await this.page.goto(target, { waitUntil: 'load' });
+    await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
     if (this.page.url().includes(loginRoute)) {
       throw new Error(
         `Still redirected to ${loginRoute} after re-auth. The session recipe/inject config is broken — ` +
@@ -247,7 +233,11 @@ class BrowserSession implements SurfaceSession {
     if (!loginRoute || !this.lastRoute || this.lastRoute === loginRoute) return false;
     if (!this.page.url().includes(loginRoute)) return false;
     const target = this.lastRoute.startsWith('http') ? this.lastRoute : this.baseUrl + this.lastRoute;
-    await this.reauthAndRetry(target, loginRoute);
+    if (this.opts.lockNav) {
+      await this.opts.lockNav(() => this.reauthAndRetry(target, loginRoute));
+    } else {
+      await this.reauthAndRetry(target, loginRoute);
+    }
     return true;
   }
 

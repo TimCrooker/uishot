@@ -25,6 +25,10 @@ const rawSchema = z.object({
   app: z.object({
     baseUrl: z.string().min(1),
     defaultSizes: z.array(z.string()).min(1),
+    // Concurrent capture workers for sweeps. Set to 1 for apps whose auth
+    // rotates refresh tokens on every page boot (concurrent boots race the
+    // rotation and trip reuse-revocation).
+    parallelism: z.number().int().min(1).max(8).default(4),
   }),
   viewports: z.record(z.string().regex(/^\d+x\d+$/, 'expected WIDTHxHEIGHT like 390x844')),
   sessions: z
@@ -165,6 +169,7 @@ export function parseManifest(
   return {
     baseUrl: raw.app.baseUrl.replace(/\/$/, ''),
     defaultSizes: raw.app.defaultSizes,
+    parallelism: raw.app.parallelism,
     viewports,
     sessions,
     screens,

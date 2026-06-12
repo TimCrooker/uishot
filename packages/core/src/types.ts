@@ -52,6 +52,8 @@ export interface ScreenConfig {
 export interface Manifest {
   baseUrl: string;
   defaultSizes: string[];
+  /** Concurrent capture workers for sweeps (1 for rotation-sensitive auth). */
+  parallelism: number;
   viewports: Record<string, Viewport>;
   sessions: Record<string, SessionConfig>;
   screens: Record<string, ScreenConfig>;

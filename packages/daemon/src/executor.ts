@@ -53,7 +53,6 @@ function gitSha(root: string): string {
   }
 }
 
-const POOL = 4;
 
 export async function executeTargets(
   root: string,
@@ -177,7 +176,7 @@ export async function executeTargets(
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(POOL, targets.length) }, () => worker()));
+  await Promise.all(Array.from({ length: Math.min(manifest.parallelism, targets.length) }, () => worker()));
   if (shots.length > 0) updateIndex(root, shots);
   return { shots, failures, verified };
 }
