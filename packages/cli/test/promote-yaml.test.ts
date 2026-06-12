@@ -20,12 +20,14 @@ describe('promoteIntoYaml', () => {
     const out = promoteIntoYaml(YAML, 'items.list', 'filters-open', [
       { action: 'click', selector: '[data-testid=open-filters]' },
       { action: 'fill', selector: '#qty', value: '3' },
+      { action: 'storage', selector: 'panel-open', value: 'true' },
       { action: 'waitMs', value: '500' },
     ]);
     const m = parseManifest(out, {});
     expect(m.screens['items.list']!.states['filters-open']).toEqual([
       { action: 'click', selector: '[data-testid=open-filters]' },
       { action: 'fill', selector: '#qty', value: '3' },
+      { action: 'storage', selector: 'panel-open', value: 'true' },
       { action: 'waitMs', value: '500' },
     ]);
   });

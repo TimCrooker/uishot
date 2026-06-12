@@ -21,6 +21,7 @@ export function promoteIntoYaml(
     switch (s.action) {
       case 'fill':
       case 'select':
+      case 'storage':
         return { [s.action]: [s.selector, s.value] };
       case 'press':
       case 'goto':
