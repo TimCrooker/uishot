@@ -69,6 +69,16 @@ export async function executeTargets(
 
   async function captureOne(session: SurfaceSession, t: CaptureTarget): Promise<void> {
     session.resetErrorCount();
+    // `storage` seeds are scoped to their target: snapshot origin storage on
+    // first load, restore after, so a seeded panel-open doesn't leak into
+    // every later capture in the sweep.
+    const usesStorage = t.steps.some((s) => s.action === 'storage');
+    let storageSnapshot: string | undefined;
+    const snapshotOnce = async (): Promise<void> => {
+      if (usesStorage && storageSnapshot === undefined && session.snapshotStorage) {
+        storageSnapshot = await session.snapshotStorage();
+      }
+    };
     // Readiness + recipe as one retryable sequence: SPAs can bounce to login
     // after hydration (past goto's immediate check), so any failure gets one
     // recover-and-replay from a fresh navigation.
@@ -84,6 +94,7 @@ export async function executeTargets(
     };
     const navAndSettle = async (): Promise<void> => {
       await session.goto(t.route);
+      await snapshotOnce();
       try {
         await settle();
       } catch (err) {
@@ -162,6 +173,14 @@ export async function executeTargets(
         });
       }
       if (opts.verifyOnly) verified.push({ screen: t.screenId, state: t.state, ok: false });
+    } finally {
+      if (storageSnapshot !== undefined && session.restoreStorage) {
+        try {
+          await session.restoreStorage(storageSnapshot);
+        } catch {
+          // restore is best-effort; the next target's goto re-baselines anyway
+        }
+      }
     }
   }
 

@@ -300,6 +300,18 @@ class BrowserSession implements SurfaceSession {
     return { png: Buffer.from(png), consoleErrors: this.consoleErrors };
   }
 
+  async snapshotStorage(): Promise<string> {
+    return this.page.evaluate(() => JSON.stringify(localStorage));
+  }
+
+  async restoreStorage(snapshot: string): Promise<void> {
+    await this.page.evaluate((snap: string) => {
+      const entries = JSON.parse(snap) as Record<string, string>;
+      localStorage.clear();
+      for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v);
+    }, snapshot);
+  }
+
   resetErrorCount(): void {
     this.consoleErrors = 0;
   }

@@ -19,6 +19,12 @@ export interface SurfaceSession {
    * return true so the caller can retry its readiness wait once.
    */
   recoverIfBounced?(): Promise<boolean>;
+  /**
+   * Optional origin-storage snapshot/restore, used to keep `storage` recipe
+   * seeds scoped to their own target instead of leaking into later captures.
+   */
+  snapshotStorage?(): Promise<string>;
+  restoreStorage?(snapshot: string): Promise<void>;
   dispose(): Promise<void>;
 }
 
