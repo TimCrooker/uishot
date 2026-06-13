@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { shotPath, failedShotPath, updateIndex, readIndex } from '../src/shots.js';
+import { shotPath, failedShotPath, resolveOutPath, updateIndex, readIndex } from '../src/shots.js';
 
 const vp = { name: 'lg', width: 1440, height: 900 };
 
@@ -22,6 +22,13 @@ describe('shots', () => {
   it('sanitizes ad-hoc ids derived from routes', () => {
     expect(shotPath('/r', 'route:/orders/123', 'adhoc', vp)).toBe(
       '/r/.uishot/shots/route__orders_123/adhoc@1440x900.png',
+    );
+  });
+
+  it('resolveOutPath: .png is verbatim, a dir gets a disambiguated name', () => {
+    expect(resolveOutPath('/tmp/shot.png', 'orders.detail', 'base', vp)).toBe('/tmp/shot.png');
+    expect(resolveOutPath('/tmp/out', 'orders.detail', 'refund-modal', vp)).toBe(
+      '/tmp/out/orders.detail_refund-modal@1440x900.png',
     );
   });
 

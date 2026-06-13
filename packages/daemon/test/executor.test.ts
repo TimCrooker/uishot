@@ -96,4 +96,35 @@ describe('executeTargets', () => {
     const res = await executeTargets(root, manifest, surface, targets);
     expect(res.failures[0]!.message).toMatch(/Unknown session "admin"/);
   });
+
+  it('clip captures a single element', async () => {
+    const targets = resolveTargets(manifest, {
+      screen: 'items.list',
+      sizes: ['lg'],
+      clip: '[data-testid=items-table]',
+    });
+    const res = await executeTargets(root, manifest, surface, targets);
+    expect(res.failures).toEqual([]);
+    expect(res.shots).toHaveLength(1);
+    expect(existsSync(res.shots[0]!.path)).toBe(true);
+  });
+
+  it('captures an inline WIDTHxHEIGHT size', async () => {
+    const targets = resolveTargets(manifest, { screen: 'dashboard', sizes: ['800x1600'] });
+    const res = await executeTargets(root, manifest, surface, targets);
+    expect(res.failures).toEqual([]);
+    expect(res.shots[0]!.size).toBe('800x1600');
+    expect(existsSync(res.shots[0]!.path)).toBe(true);
+  });
+
+  it('--out writes to a custom destination and stays out of the index', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'uishot-out-'));
+    const before = Object.keys(readIndex(root)).length;
+    const targets = resolveTargets(manifest, { screen: 'dashboard', sizes: ['lg'], out: outDir });
+    const res = await executeTargets(root, manifest, surface, targets);
+    expect(res.failures).toEqual([]);
+    expect(res.shots[0]!.path.startsWith(outDir)).toBe(true);
+    expect(existsSync(res.shots[0]!.path)).toBe(true);
+    expect(Object.keys(readIndex(root)).length).toBe(before);
+  });
 });

@@ -95,4 +95,20 @@ describe('resolveTargets', () => {
     expect(t[0]!.sizes.map((v) => v.name)).toEqual(['lg']);
     expect(() => resolveTargets(manifest, { screen: 'items.list', sizes: ['xl'] })).toThrowError(/sm, lg/);
   });
+
+  it('accepts an inline WIDTHxHEIGHT size without touching the manifest', () => {
+    const t = resolveTargets(manifest, { screen: 'items.list', sizes: ['1440x2400'] });
+    expect(t[0]!.sizes).toEqual([{ name: '1440x2400', width: 1440, height: 2400 }]);
+  });
+
+  it('unknown non-dimension size hints at WIDTHxHEIGHT', () => {
+    expect(() => resolveTargets(manifest, { screen: 'items.list', sizes: ['huge'] })).toThrowError(
+      /WIDTHxHEIGHT/,
+    );
+  });
+
+  it('threads clip and out onto every target', () => {
+    const t = resolveTargets(manifest, { screen: 'items.list', clip: '[data-card]', out: '/tmp/x.png' });
+    expect(t[0]).toMatchObject({ clip: '[data-card]', out: '/tmp/x.png' });
+  });
 });

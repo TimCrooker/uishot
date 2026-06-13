@@ -11,6 +11,10 @@ export interface CaptureQuery {
   sizes?: string[];
   session?: string;
   diff?: boolean;
+  /** CSS/Playwright selector to capture instead of the full page (element clip). */
+  clip?: string;
+  /** Override output destination: a `.png` file path, or a directory. */
+  out?: string;
 }
 
 export interface CaptureTarget {
@@ -22,16 +26,27 @@ export interface CaptureTarget {
   session: string;
   sizes: Viewport[];
   diff: boolean;
+  clip?: string;
+  out?: string;
+}
+
+/** Parse an inline `WIDTHxHEIGHT` viewport (e.g. "1440x2400"); null when not that shape. */
+export function parseInlineViewport(token: string): Viewport | null {
+  const m = /^(\d+)x(\d+)$/.exec(token.trim());
+  if (!m) return null;
+  return { name: token.trim(), width: Number(m[1]), height: Number(m[2]) };
 }
 
 function viewportsFor(m: Manifest, sizes?: string[]): Viewport[] {
   const names = sizes && sizes.length > 0 ? sizes : m.defaultSizes;
   return names.map((n) => {
     const vp = m.viewports[n];
-    if (!vp) {
-      throw new ManifestError(`Unknown size "${n}". Available: ${Object.keys(m.viewports).join(', ')}`);
-    }
-    return vp;
+    if (vp) return vp;
+    const inline = parseInlineViewport(n);
+    if (inline) return inline;
+    throw new ManifestError(
+      `Unknown size "${n}". Available: ${Object.keys(m.viewports).join(', ')} (or pass WIDTHxHEIGHT, e.g. 1440x2400)`,
+    );
   });
 }
 
@@ -53,6 +68,8 @@ export function resolveTargets(m: Manifest, q: CaptureQuery): CaptureTarget[] {
     session: q.session ?? session ?? 'default',
     sizes,
     diff: q.diff ?? false,
+    clip: q.clip,
+    out: q.out,
   });
 
   if (q.url) {

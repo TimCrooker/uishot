@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import type { CaptureTarget, Manifest, Surface, SurfaceSession, ShotRecord } from 'uishot-core';
 import {
@@ -6,7 +7,9 @@ import {
   diffPngs,
   failedShotPath,
   prevPath,
+  resolveOutPath,
   shotPath,
+  shotsDir,
   updateIndex,
   writeShot,
 } from 'uishot-core';
@@ -106,7 +109,24 @@ export async function executeTargets(
       }
     };
     const captureAt = async (vp: (typeof t.sizes)[number]): Promise<void> => {
-      const img = await session.capture(vp);
+      const img = await session.capture(vp, t.clip);
+      // Custom --out is a throwaway destination: write the PNG verbatim, no
+      // prev-rotation / diff / index bookkeeping (those are default-shot concepts).
+      if (t.out) {
+        const outPath = resolveOutPath(t.out, t.screenId, t.state, vp);
+        mkdirSync(dirname(outPath), { recursive: true });
+        writeFileSync(outPath, img.png);
+        shots.push({
+          screen: t.screenId,
+          state: t.state,
+          size: vp.name,
+          path: outPath,
+          capturedAt: new Date().toISOString(),
+          gitSha: sha,
+          consoleErrors: img.consoleErrors,
+        });
+        return;
+      }
       const path = shotPath(root, t.screenId, t.state, vp);
       const hadPrev = existsSync(path);
       writeShot(path, img.png);
@@ -211,6 +231,9 @@ export async function executeTargets(
   }
 
   await Promise.all(Array.from({ length: Math.min(manifest.parallelism, targets.length) }, () => worker()));
-  if (shots.length > 0) updateIndex(root, shots);
+  // Only default-location shots belong in the index; custom --out captures are
+  // ad-hoc destinations and must not pollute the registry / diff baselines.
+  const indexable = shots.filter((s) => s.path.startsWith(shotsDir(root)));
+  if (indexable.length > 0) updateIndex(root, indexable);
   return { shots, failures, verified };
 }

@@ -26,6 +26,16 @@ export function shotPath(root: string, screenId: string, state: string, vp: View
   return join(shotsDir(root), sanitizeId(screenId), `${sanitizeId(state)}@${vp.width}x${vp.height}.png`);
 }
 
+/**
+ * Resolve a custom `--out` destination. A `.png` path is used verbatim (single
+ * capture); a directory gets a disambiguated `<screen>_<state>@WxH.png` filename
+ * so a multi-size/multi-screen capture doesn't collide.
+ */
+export function resolveOutPath(out: string, screenId: string, state: string, vp: Viewport): string {
+  if (/\.png$/i.test(out)) return out;
+  return join(out, `${sanitizeId(screenId)}_${sanitizeId(state)}@${vp.width}x${vp.height}.png`);
+}
+
 export function failedShotPath(root: string, screenId: string, state: string, vp: Viewport): string {
   return join(
     shotsDir(root),

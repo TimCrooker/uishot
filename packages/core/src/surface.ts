@@ -11,7 +11,8 @@ export interface SurfaceSession {
   currentUrl(): Promise<string>;
   /** Set viewport BEFORE building interaction state — overlays (dropdowns, popovers) close on resize. */
   setViewport(viewport: Viewport): Promise<void>;
-  capture(viewport: Viewport): Promise<CapturedImage>;
+  /** Capture the full page, or a single element when `clip` (a selector) is given. */
+  capture(viewport: Viewport, clip?: string): Promise<CapturedImage>;
   resetErrorCount(): void;
   /**
    * Optional late-bounce recovery: if the surface detects it drifted to an

@@ -294,9 +294,14 @@ class BrowserSession implements SurfaceSession {
     await this.page.setViewportSize({ width: viewport.width, height: viewport.height });
   }
 
-  async capture(viewport: Viewport): Promise<CapturedImage> {
+  async capture(viewport: Viewport, clip?: string): Promise<CapturedImage> {
     await this.setViewport(viewport);
-    const png = await this.page.screenshot({ fullPage: true });
+    // Element clip captures the locator's full box (Playwright scrolls it into
+    // view), which beats `fullPage` for apps that scroll inside a nested
+    // overflow container — `fullPage` only sees the viewport-height shell there.
+    const png = clip
+      ? await this.page.locator(clip).screenshot({ timeout: ACT_TIMEOUT })
+      : await this.page.screenshot({ fullPage: true });
     return { png: Buffer.from(png), consoleErrors: this.consoleErrors };
   }
 
