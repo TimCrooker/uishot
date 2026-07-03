@@ -10,6 +10,7 @@ import type {
   SurfaceSession,
   Viewport,
 } from 'uishot-core';
+import { rankSuggestions, type SuggestionCandidate } from 'uishot-core';
 
 // Generous enough for a dev server transforming a heavy app under parallel
 // load; a genuinely broken selector still fails with clear evidence.
@@ -399,12 +400,52 @@ class BrowserSession implements SurfaceSession {
         }
       }
     } catch (err) {
+      const context = await this.failureContext(sel).catch(() => '');
       throw new Error(
         `step ${step.action}${sel ? ` ${sel}` : ''}${step.value ? `=${step.value}` : ''} failed: ${
           (err as Error).message.split('\n')[0]
-        }`,
+        }${context}`,
       );
     }
+  }
+
+  /**
+   * Failure diagnostics: where the page actually is, and what on it looks like
+   * what the failed selector wanted. Turns a dead-end timeout into a repair
+   * prompt. Best-effort and bounded — never masks the original failure.
+   */
+  private async failureContext(sel: string): Promise<string> {
+    let out = '';
+    try {
+      const title = await this.page.title();
+      out = ` Page: ${this.page.url()}${title ? ` ("${title}")` : ''}.`;
+    } catch {
+      return out;
+    }
+    if (!sel) return out;
+    try {
+      const candidates = await this.page.evaluate((): SuggestionCandidate[] => {
+        const found: { label: string; text: string }[] = [];
+        for (const el of Array.from(document.querySelectorAll('[data-testid]'))) {
+          const v = el.getAttribute('data-testid')!;
+          found.push({ label: `[data-testid=${v}]`, text: v });
+        }
+        const seen = new Set<string>();
+        for (const el of Array.from(document.querySelectorAll('button, a, [role]'))) {
+          const text = (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 60);
+          if (!text || seen.has(text)) continue;
+          seen.add(text);
+          found.push({ label: `${el.tagName.toLowerCase()} "${text}"`, text });
+          if (found.length >= 250) break;
+        }
+        return found.slice(0, 250);
+      });
+      const ranked = rankSuggestions(sel, candidates);
+      if (ranked.length > 0) out += ` Near matches: ${ranked.join(', ')}.`;
+    } catch {
+      // suggestions are a bonus, not a dependency
+    }
+    return out;
   }
 
   async currentUrl(): Promise<string> {

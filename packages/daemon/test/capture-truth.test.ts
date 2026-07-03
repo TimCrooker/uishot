@@ -124,6 +124,36 @@ describe('clip-proof full capture', () => {
     await s.dispose();
   });
 
+  it('failed selectors report page context and near-miss suggestions', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/items.html');
+    let message = '';
+    try {
+      await s.act({ action: 'click', selector: '[data-testid=open-filter]' });
+    } catch (err) {
+      message = (err as Error).message;
+    }
+    expect(message).toMatch(/\[data-testid=open-filter\]/);
+    expect(message).toMatch(/Page: .*\/items\.html/);
+    expect(message).toMatch(/Items — Demo/);
+    expect(message).toMatch(/Near matches: .*\[data-testid=open-filters\]/);
+    await s.dispose();
+  });
+
+  it('omits suggestions when nothing on the page is plausibly related', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/items.html');
+    let message = '';
+    try {
+      await s.act({ action: 'click', selector: '[data-testid=zzz-qqq-www]' });
+    } catch (err) {
+      message = (err as Error).message;
+    }
+    expect(message).toMatch(/Page: /);
+    expect(message).not.toMatch(/Near matches/);
+    await s.dispose();
+  });
+
   it('expands a clipped element for --clip captures too', async () => {
     const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
     await s.goto('/feed.html');
