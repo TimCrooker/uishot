@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
-const pages = ['index', 'login', 'dashboard', 'items', 'wizard'];
+const pages = ['index', 'login', 'dashboard', 'items', 'wizard', 'slow', 'restless', 'feed', 'virtual', 'tall'];
 
 export default defineConfig({
   appType: 'mpa',

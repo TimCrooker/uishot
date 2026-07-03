@@ -71,3 +71,65 @@ describe('settled capture', () => {
     await s.dispose();
   });
 });
+
+describe('clip-proof full capture', () => {
+  const SM = { name: 'sm', width: 390, height: 844 };
+
+  it('captures the full content of a viewport-locked inner-scroll app', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/feed.html');
+    const shot = await s.capture(LG);
+    const png = PNG.sync.read(shot.png);
+    // 60 rows @40px ≈ 2400px of feed content; a shell-only capture is 800px.
+    expect(png.height).toBeGreaterThan(1600);
+    // The end sentinel (solid #2244aa band) must be in frame near the bottom.
+    const px = pixel(png, Math.floor(png.width / 2), png.height - 30);
+    expect(px.b).toBeGreaterThan(120);
+    expect(px.r).toBeLessThan(100);
+    expect(shot.warnings.find((w) => /clipped/.test(w))).toBeUndefined();
+    await s.dispose();
+  });
+
+  it('restores the page after expanding: a second capture at another size is also complete', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/feed.html');
+    const lg = await s.capture(LG);
+    const sm = await s.capture(SM);
+    const smPng = PNG.sync.read(sm.png);
+    expect(smPng.width).toBe(390);
+    expect(smPng.height).toBeGreaterThan(1600);
+    expect(lg.warnings.concat(sm.warnings).find((w) => /clipped/.test(w))).toBeUndefined();
+    await s.dispose();
+  });
+
+  it('backs off and flags virtualized lists that grow when expanded', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/virtual.html');
+    const shot = await s.capture(LG);
+    expect(shot.warnings.some((w) => /clipped/.test(w))).toBe(true);
+    // Fallback capture is the honest viewport-height document, not a half-grown one.
+    const png = PNG.sync.read(shot.png);
+    expect(png.height).toBeLessThan(1000);
+    await s.dispose();
+  });
+
+  it('caps absurdly tall content and says so', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/tall.html');
+    const shot = await s.capture(LG);
+    expect(shot.warnings.some((w) => /truncated at 10000px/.test(w))).toBe(true);
+    const png = PNG.sync.read(shot.png);
+    expect(png.height).toBeLessThanOrEqual(10100);
+    expect(png.height).toBeGreaterThan(9000);
+    await s.dispose();
+  });
+
+  it('expands a clipped element for --clip captures too', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/feed.html');
+    const shot = await s.capture(LG, 'main.feed');
+    const png = PNG.sync.read(shot.png);
+    expect(png.height).toBeGreaterThan(1600);
+    await s.dispose();
+  });
+});

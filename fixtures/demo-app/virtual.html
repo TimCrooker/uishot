@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Virtual — Demo</title>
+    <link rel="stylesheet" href="/src/style.css" />
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      .app {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      main.windowed {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+      }
+      .row {
+        height: 32px;
+        border-bottom: 1px solid #e2e5e9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="windowed" data-testid="windowed">
+        <div id="rows"></div>
+      </main>
+    </div>
+    <script type="module">
+      // Simulates a windowed/virtualized list: whenever the container's box
+      // grows, it renders more rows to fill it. Expanding it can never reach
+      // the bottom — a truthful capturer must detect the growth, back off,
+      // and flag the shot as clipped.
+      const rows = document.getElementById('rows');
+      const add = (n) => {
+        for (let i = 0; i < n; i++) {
+          const d = document.createElement('div');
+          d.className = 'row';
+          d.textContent = 'virtual row ' + rows.children.length;
+          rows.appendChild(d);
+        }
+      };
+      add(200);
+      new ResizeObserver(() => add(200)).observe(document.querySelector('main.windowed'));
+    </script>
+  </body>
+</html>

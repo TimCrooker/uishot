@@ -21,6 +21,121 @@ const WAIT_TIMEOUT = 15000;
 // warning instead.
 const SETTLE_QUIET_MS = 200;
 const SETTLE_TIMEOUT_MS = 3000;
+// Inner-scroll expansion: production SPAs lock the shell to the viewport and
+// scroll inside a nested container, so a document-height `fullPage` capture
+// silently clips their content. Before the screenshot we grow those containers
+// (and the ancestors constraining them) so the document truthfully contains
+// everything, then restore. Windowed lists that keep growing get an honest
+// clipped-content warning instead.
+const OVERFLOW_THRESHOLD_PX = 100;
+const GROWTH_TOLERANCE_PX = 100;
+const MAX_CAPTURE_HEIGHT_PX = 10000;
+
+interface ExpandOutcome {
+  mode: 'none' | 'expanded' | 'fallback';
+  warning?: string;
+}
+
+/**
+ * Runs in the page. Finds clipped scroll containers (or uses `root` when
+ * capturing a single element), neutralizes the height/overflow constraints on
+ * them and their ancestor chains, and verifies the layout is stable at its new
+ * size. Saved inline styles are stashed on `window` for restoreExpansion().
+ */
+async function expandInPage(args: {
+  root: Element | null;
+  threshold: number;
+  growthTol: number;
+  maxHeight: number;
+}): Promise<{ mode: 'none' | 'expanded' | 'fallback'; hiddenPx?: number; desc?: string; truncated?: boolean }> {
+  const { root, threshold, growthTol, maxHeight } = args;
+  const html = document.documentElement;
+  const describe = (el: Element): string => {
+    const tag = el.tagName.toLowerCase();
+    const testid = el.getAttribute('data-testid');
+    if (testid) return `${tag}[data-testid=${testid}]`;
+    if (el.id) return `${tag}#${el.id}`;
+    const cls = el.classList[0];
+    return cls ? `${tag}.${cls}` : tag;
+  };
+  const hiddenPx = (el: Element): number => el.scrollHeight - el.clientHeight;
+  const scrollable = (el: Element): boolean => {
+    const oy = getComputedStyle(el).overflowY;
+    return oy === 'auto' || oy === 'scroll' || oy === 'overlay';
+  };
+
+  let containers: Element[];
+  if (root) {
+    containers = hiddenPx(root) > threshold ? [root] : [];
+  } else {
+    containers = Array.from(document.querySelectorAll('*'))
+      .filter((el) => el !== html && el !== document.body && hiddenPx(el) > threshold && scrollable(el))
+      .sort((a, b) => hiddenPx(b) - hiddenPx(a))
+      .slice(0, 5);
+  }
+  if (containers.length === 0) return { mode: 'none' };
+  const worst = containers[0]!;
+  const info = { hiddenPx: hiddenPx(worst), desc: describe(worst) };
+
+  const saved: Array<[HTMLElement, string | null]> = [];
+  const grown = new Set<Element>();
+  const grow = (el: HTMLElement): void => {
+    if (grown.has(el)) return;
+    grown.add(el);
+    saved.push([el, el.getAttribute('style')]);
+    el.style.setProperty('height', 'auto', 'important');
+    el.style.setProperty('max-height', 'none', 'important');
+    el.style.setProperty('overflow-y', 'visible', 'important');
+    // In a column-flex parent, `flex: 1 1 0` pins the height regardless of
+    // `height: auto`; releasing the main axis doesn't touch cross-axis width.
+    const parent = el.parentElement;
+    if (parent) {
+      const ps = getComputedStyle(parent);
+      if (/flex/.test(ps.display) && ps.flexDirection.startsWith('column')) {
+        el.style.setProperty('flex', 'none', 'important');
+      }
+    }
+  };
+  for (const c of containers) {
+    let cur: HTMLElement | null = c as HTMLElement;
+    while (cur) {
+      grow(cur);
+      cur = cur.parentElement;
+    }
+  }
+  const restore = (): void => {
+    for (const [el, style] of saved) {
+      if (style === null) el.removeAttribute('style');
+      else el.setAttribute('style', style);
+    }
+  };
+  (window as unknown as Record<string, unknown>).__uishotRestore = restore;
+
+  const tick = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await tick();
+  const h1 = html.scrollHeight;
+  await new Promise((r) => setTimeout(r, 80));
+  await tick();
+  const h2 = html.scrollHeight;
+  if (h2 - h1 > growthTol) {
+    // Windowed rendering: content grows to fill whatever space we give it.
+    // There is no true bottom — back off and report the clip honestly.
+    restore();
+    delete (window as unknown as Record<string, unknown>).__uishotRestore;
+    return { mode: 'fallback', ...info };
+  }
+  if (h2 > maxHeight) {
+    // scrollHeight includes hidden overflow, so capping <html> can't shrink a
+    // fullPage capture — shrink the grown container itself by the excess.
+    const el = worst as HTMLElement;
+    const excess = h2 - maxHeight;
+    el.style.setProperty('height', `${Math.max(100, el.scrollHeight - excess)}px`, 'important');
+    el.style.setProperty('max-height', 'none', 'important');
+    el.style.setProperty('overflow-y', 'hidden', 'important');
+    return { mode: 'expanded', ...info, truncated: true };
+  }
+  return { mode: 'expanded', ...info };
+}
 
 export class BrowserSurface implements Surface {
   private browser?: Browser;
@@ -303,13 +418,59 @@ class BrowserSession implements SurfaceSession {
   async capture(viewport: Viewport, clip?: string): Promise<CapturedImage> {
     await this.setViewport(viewport);
     const warnings = await this.settle();
-    // Element clip captures the locator's full box (Playwright scrolls it into
-    // view), which beats `fullPage` for apps that scroll inside a nested
-    // overflow container — `fullPage` only sees the viewport-height shell there.
-    const png = clip
-      ? await this.page.locator(clip).screenshot({ timeout: ACT_TIMEOUT })
-      : await this.page.screenshot({ fullPage: true });
-    return { png: Buffer.from(png), consoleErrors: this.consoleErrors, warnings };
+    const expansion = await this.expandClipped(clip);
+    if (expansion.warning) warnings.push(expansion.warning);
+    let png: Buffer;
+    try {
+      png = Buffer.from(
+        clip
+          ? await this.page.locator(clip).screenshot({ timeout: ACT_TIMEOUT })
+          : await this.page.screenshot({ fullPage: true }),
+      );
+    } finally {
+      if (expansion.mode === 'expanded') await this.restoreExpansion();
+    }
+    return { png, consoleErrors: this.consoleErrors, warnings };
+  }
+
+  /** Grow clipped scroll containers so the capture holds all content; see expandInPage. */
+  private async expandClipped(clip?: string): Promise<ExpandOutcome> {
+    try {
+      const root = clip
+        ? await this.page.locator(clip).elementHandle({ timeout: ACT_TIMEOUT })
+        : null;
+      const res = await this.page.evaluate(expandInPage, {
+        root,
+        threshold: OVERFLOW_THRESHOLD_PX,
+        growthTol: GROWTH_TOLERANCE_PX,
+        maxHeight: MAX_CAPTURE_HEIGHT_PX,
+      });
+      if (res.mode === 'fallback') {
+        return {
+          mode: 'fallback',
+          warning:
+            `content clipped: ~${res.hiddenPx}px hidden inside ${res.desc} (content grows when expanded — ` +
+            `likely a virtualized list); use --clip on a smaller region or a taller size`,
+        };
+      }
+      if (res.mode === 'expanded' && res.truncated) {
+        return { mode: 'expanded', warning: `content truncated at ${MAX_CAPTURE_HEIGHT_PX}px` };
+      }
+      return { mode: res.mode };
+    } catch {
+      // Expansion is an enhancement over the plain capture — never fail a shot on it.
+      return { mode: 'none' };
+    }
+  }
+
+  private async restoreExpansion(): Promise<void> {
+    await this.page
+      .evaluate(() => {
+        const w = window as unknown as Record<string, unknown>;
+        if (typeof w.__uishotRestore === 'function') (w.__uishotRestore as () => void)();
+        delete w.__uishotRestore;
+      })
+      .catch(() => {});
   }
 
   /**
