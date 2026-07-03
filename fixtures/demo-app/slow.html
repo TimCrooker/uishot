@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Slow — Demo</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body style="background: #dd3333">
+    <div class="shell" data-testid="slow-shell">
+      <h1>Staged render</h1>
+      <div id="list"></div>
+      <img src="/missing.png" alt="broken" width="40" height="40" />
+    </div>
+    <script type="module">
+      // Simulates skeleton→content streaming: DOM mutates every 100ms for
+      // ~1.5s, then settles and flips the background green. A capture that
+      // waited for settle shows green; a premature capture shows red.
+      let n = 0;
+      const t = setInterval(() => {
+        n++;
+        const d = document.createElement('div');
+        d.textContent = 'row ' + n;
+        document.getElementById('list').appendChild(d);
+        if (n >= 15) {
+          clearInterval(t);
+          document.body.style.background = '#22aa44';
+          document.body.setAttribute('data-settled', 'true');
+        }
+      }, 100);
+    </script>
+  </body>
+</html>

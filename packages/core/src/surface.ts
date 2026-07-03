@@ -3,6 +3,8 @@ import type { Manifest, RecipeStep, SessionConfig, Viewport } from './types.js';
 export interface CapturedImage {
   png: Buffer;
   consoleErrors: number;
+  /** Truth flags: anything that makes this shot less than fully trustworthy. Empty = clean. */
+  warnings: string[];
 }
 
 export interface SurfaceSession {

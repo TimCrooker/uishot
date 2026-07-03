@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Restless — Demo</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <h1>Never settles</h1>
+      <div id="tick">0</div>
+    </div>
+    <script type="module">
+      // A page that mutates forever (live ticker / animation loop): settle
+      // must give up at its cap and flag the shot, not hang.
+      let n = 0;
+      setInterval(() => {
+        n++;
+        document.getElementById('tick').textContent = String(n);
+      }, 50);
+    </script>
+  </body>
+</html>

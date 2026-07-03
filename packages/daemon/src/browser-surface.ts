@@ -15,6 +15,12 @@ import type {
 // load; a genuinely broken selector still fails with clear evidence.
 const ACT_TIMEOUT = 10000;
 const WAIT_TIMEOUT = 15000;
+// Settle-before-capture: a shot taken while the page is still becoming itself
+// (pending fonts/images, streaming DOM mutations) is a silent lie. Wait for a
+// quiet window, capped so a live ticker can't hang a capture — it gets a
+// warning instead.
+const SETTLE_QUIET_MS = 200;
+const SETTLE_TIMEOUT_MS = 3000;
 
 export class BrowserSurface implements Surface {
   private browser?: Browser;
@@ -296,13 +302,84 @@ class BrowserSession implements SurfaceSession {
 
   async capture(viewport: Viewport, clip?: string): Promise<CapturedImage> {
     await this.setViewport(viewport);
+    const warnings = await this.settle();
     // Element clip captures the locator's full box (Playwright scrolls it into
     // view), which beats `fullPage` for apps that scroll inside a nested
     // overflow container — `fullPage` only sees the viewport-height shell there.
     const png = clip
       ? await this.page.locator(clip).screenshot({ timeout: ACT_TIMEOUT })
       : await this.page.screenshot({ fullPage: true });
-    return { png: Buffer.from(png), consoleErrors: this.consoleErrors };
+    return { png: Buffer.from(png), consoleErrors: this.consoleErrors, warnings };
+  }
+
+  /**
+   * Bounded settle pass: flush pending paints, wait for fonts and images, then
+   * require a mutation-quiet window before the screenshot. Best-effort — a
+   * settle problem flags the shot, it never fails the capture.
+   */
+  private async settle(): Promise<string[]> {
+    const warnings: string[] = [];
+    try {
+      const res = await this.page.evaluate(
+        async ({ quietMs, timeoutMs }: { quietMs: number; timeoutMs: number }) => {
+          const deadline = Date.now() + timeoutMs;
+          const remaining = () => Math.max(0, deadline - Date.now());
+          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+          try {
+            await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, remaining()))]);
+          } catch {
+            /* fonts API quirks never block a capture */
+          }
+          const pending = Array.from(document.images).filter((i) => !i.complete);
+          await Promise.race([
+            Promise.all(
+              pending.map(
+                (i) =>
+                  new Promise((r) => {
+                    i.addEventListener('load', r, { once: true });
+                    i.addEventListener('error', r, { once: true });
+                  }),
+              ),
+            ),
+            new Promise((r) => setTimeout(r, remaining())),
+          ]);
+          const settled = await new Promise<boolean>((resolve) => {
+            let timer: ReturnType<typeof setTimeout>;
+            const done = (ok: boolean) => {
+              obs.disconnect();
+              resolve(ok);
+            };
+            const arm = () => {
+              // A full quiet window no longer fits before the deadline: the
+              // page is still mutating at the cap — report it honestly.
+              if (remaining() < quietMs) return done(false);
+              timer = setTimeout(() => done(true), quietMs);
+            };
+            const obs = new MutationObserver(() => {
+              clearTimeout(timer);
+              arm();
+            });
+            obs.observe(document.documentElement, {
+              subtree: true,
+              childList: true,
+              attributes: true,
+              characterData: true,
+            });
+            arm();
+          });
+          const failedImages = Array.from(document.images).filter(
+            (i) => i.complete && i.naturalWidth === 0,
+          ).length;
+          return { settled, failedImages };
+        },
+        { quietMs: SETTLE_QUIET_MS, timeoutMs: SETTLE_TIMEOUT_MS },
+      );
+      if (!res.settled) warnings.push(`layout still mutating after ${SETTLE_TIMEOUT_MS}ms`);
+      if (res.failedImages > 0) warnings.push(`${res.failedImages} image(s) failed to load`);
+    } catch {
+      // settle is diagnostics, not a gate
+    }
+    return warnings;
   }
 
   async snapshotStorage(): Promise<string> {
