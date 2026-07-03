@@ -37,6 +37,8 @@ screens:
   dashboard:
     route: /dashboard.html
     feature: home
+  slow:
+    route: /slow.html
 `;
 
 const manifest = parseManifest(YAML, { FIX_URL: BASE });
@@ -115,6 +117,22 @@ describe('executeTargets', () => {
     expect(res.failures).toEqual([]);
     expect(res.shots[0]!.size).toBe('800x1600');
     expect(existsSync(res.shots[0]!.path)).toBe(true);
+  });
+
+  it('propagates capture warnings into shot records and omits the field when clean', async () => {
+    const res = await executeTargets(
+      root,
+      manifest,
+      surface,
+      resolveTargets(manifest, { screen: 'slow', sizes: ['lg'] }).concat(
+        resolveTargets(manifest, { screen: 'dashboard', sizes: ['lg'] }),
+      ),
+    );
+    expect(res.failures).toEqual([]);
+    const slow = res.shots.find((s) => s.screen === 'slow')!;
+    expect(slow.warnings).toContain('1 image(s) failed to load');
+    const clean = res.shots.find((s) => s.screen === 'dashboard')!;
+    expect(clean.warnings).toBeUndefined();
   });
 
   it('--out writes to a custom destination and stays out of the index', async () => {

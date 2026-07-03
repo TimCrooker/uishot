@@ -124,6 +124,7 @@ export async function executeTargets(
           capturedAt: new Date().toISOString(),
           gitSha: sha,
           consoleErrors: img.consoleErrors,
+          ...(img.warnings.length > 0 ? { warnings: img.warnings } : {}),
         });
         return;
       }
@@ -138,6 +139,7 @@ export async function executeTargets(
         capturedAt: new Date().toISOString(),
         gitSha: sha,
         consoleErrors: img.consoleErrors,
+        ...(img.warnings.length > 0 ? { warnings: img.warnings } : {}),
       };
       if (t.diff && hadPrev) {
         const d = diffPngs(readFileSync(prevPath(path)), img.png);

@@ -22,7 +22,8 @@ The loop: edit code → (HMR applies it) → `uishot snap <screen> [--state s] [
 ## Rules
 
 - stdout is file paths. Read ONLY the sizes you need; don't read every size of every shot.
-- A failed recipe prints stuck-state evidence (`__failed-*.png`) — Read it; it shows where the recipe stopped. Then fix the recipe in uishot.config.yaml or re-record with --do + promote.
+- **Trust the warnings.** Every shot is verified before delivery (page settled, images loaded, inner-scroll content expanded into frame). A `warning <screen>/<state>@<size>: ...` line on stderr (or `warnings` in `--json`) means the shot may not show the truth — fix the cause (broken image, UI still mutating, virtualized list) or account for it before trusting the pixels. No warnings = full content, settled.
+- A failed recipe prints stuck-state evidence (`__failed-*.png`) — Read it; it shows where the recipe stopped. Failure messages also include the page URL/title and `Near matches:` selector suggestions from the live DOM — the repair is usually right there. Then fix the recipe in uishot.config.yaml or re-record with --do + promote.
 - Selectors in recipes: prefer data-testid, then ARIA roles/ids. Never nth-child chains.
 - `--do` values cannot contain `=` (parser splits on last `=`); use a named YAML state for those.
 - New screen you're building? Add it to uishot.config.yaml (screens.<id>: route, feature, readyWhen) BEFORE iterating, so it's addressable for the rest of the session and for the next agent.

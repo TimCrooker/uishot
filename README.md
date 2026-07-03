@@ -96,9 +96,11 @@ uishot doctor [--reauth]                   # manifest/dev-server/browser/daemon/
 uishot daemon <status|stop>                # lifecycle (normally automatic)
 ```
 
-**Output contract:** stdout is one produced file path per line (the minimal payload an agent needs). Paths are stable and guessable: `.uishot/shots/<screen>/<state>@<WxH>.png`. `--json` returns the full record (timestamps, git SHA, console-error counts, change ratios). `.uishot/shots/index.json` accumulates the latest record per screen/state/size.
+**Output contract:** stdout is one produced file path per line (the minimal payload an agent needs). Paths are stable and guessable: `.uishot/shots/<screen>/<state>@<WxH>.png`. `--json` returns the full record (timestamps, git SHA, console-error counts, warnings, change ratios). `.uishot/shots/index.json` accumulates the latest record per screen/state/size.
 
-**Failure contract:** a broken recipe exits 1 and writes stuck-state evidence — a screenshot of exactly where the recipe stopped (`__failed-<state>@<size>.png`) plus the failing step and the exact commands to repair. Errors are prompts.
+**Truth contract:** a shot is either trustworthy or explicitly flagged — never silently wrong. Every capture waits for the page to settle (fonts, image decode, a DOM-mutation-quiet window, capped at 3s), and anything less than fully trustworthy is flagged: `warning <screen>/<state>@<size>: ...` on stderr, `warnings: [...]` in `--json`. Flags cover pages still mutating at the cap, broken images, and clipped or truncated content. No warnings means: full content, settled.
+
+**Failure contract:** a broken recipe exits 1 and writes stuck-state evidence — a screenshot of exactly where the recipe stopped (`__failed-<state>@<size>.png`) plus the failing step, the page URL/title it was on, near-miss selector suggestions harvested from the live DOM (`Near matches: [data-testid=open-filters], ...`), and the exact commands to repair. Errors are prompts.
 
 ## Keeping the manifest in line as the app evolves
 
@@ -113,6 +115,15 @@ The working agreement for an agent (also shipped as the `uishot` skill):
 2. **Building a modal/wizard/panel?** Compose it with `--do`, then `promote` it — future sessions get it for free.
 3. **Renaming selectors?** Run `uishot verify` before you're done; fix the recipes your rename broke.
 4. **CI:** `uishot drift --strict && uishot verify` keeps both axes honest on every PR.
+
+## How it stays honest
+
+Production SPAs lock the app shell to the viewport and scroll inside a nested container — the layout of dashboards, mail clients, chat apps, admin panels. A naive full-page screenshot captures the viewport-height shell and silently drops everything the inner container scrolls past. uishot detects clipped scroll containers before every capture, temporarily grows them (and the ancestor chains constraining them) so the document truthfully holds all content, screenshots, and restores the page. Two honest edges:
+
+- **Virtualized/windowed lists** render more rows to fill any space they're given — there is no true bottom. uishot detects the growth, backs off, and flags the shot: `content clipped: ~2200px hidden inside main[data-testid=feed] ... use --clip on a smaller region or a taller size`.
+- **Extremely tall content** is truncated at 10000px with a warning, so a shot can't blow out an agent's context window.
+
+`--clip <selector>` element captures get the same expansion, so clipping a scrollable region also yields its full content.
 
 ## How it stays fast
 

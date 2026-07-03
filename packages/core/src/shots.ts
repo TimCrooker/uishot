@@ -10,6 +10,8 @@ export interface ShotRecord {
   capturedAt: string;
   gitSha: string;
   consoleErrors: number;
+  /** Truth flags from capture (settle timeout, broken images, clipped/truncated content). Omitted when clean. */
+  warnings?: string[];
   changedRatio?: number;
   diffPath?: string;
 }
