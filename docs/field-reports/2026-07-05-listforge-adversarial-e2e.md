@@ -39,7 +39,7 @@ targeted snaps/clip/drift. uishot linked at 0.2.0+progress+nav-retry via workspa
   errors still fail straight through. Covered by fake-surface unit tests. Sweep 3 after the
   fix: zero transient failures.
 
-## Found, not yet fixed (backlog, in priority order)
+## Found, not yet fixed at time of writing — ALL RESOLVED same day (see Resolution below)
 
 1. **`verify` misses viewport-conditional recipe rot.** `home/user-menu-open` and
    `items/filter-after-journey` pass verify but fail in sweeps at 390x844 — their `text=`
@@ -63,3 +63,25 @@ targeted snaps/clip/drift. uishot linked at 0.2.0+progress+nav-retry via workspa
 - The two remaining sweep failures produce stuck-shot evidence + near matches + re-record
   commands; repairing them is a manifest edit in ListForge, deliberately left to a
   ListForge-side change.
+
+## Resolution (same day, v0.3.0)
+
+- **Backlog #1 fixed in uishot:** `verify` now replays every named state at every capture
+  viewport; sm-only rot fails verify with `(at 390x844)` context. On its first real run it
+  caught a *third* case the old verify had blessed (`tasks` readyWhen anchored on the
+  desktop-only sidebar).
+- **Backlog #2 fixed in uishot:** failure context now distinguishes wrong-selector from
+  exists-but-hidden: `The selector matches 1 element(s), but not visible at 390x844`.
+- **Backlog #3 fixed in docs:** README/skills now state honest warm-capture timings
+  (~1–2s fast pages, 5–8s heavy dev servers).
+- **ListForge manifest bugs fixed** (committed in list-forge-monorepo): user-menu recipe
+  → `[data-tour=user-menu]`; bulk Clear → new `data-testid=bulk-clear-selection` (label is
+  `hidden sm:inline`); tasks readyWhen → breakpoint-safe search-input anchor.
+- **New app bug surfaced by the fix:** the old tasks readyWhen proved the sidebar shell,
+  masking that the "Ready to Publish" queue renders empty for every dev org despite a
+  non-zero badge. State retired with re-record instructions; bug handed off ListForge-side
+  (along with the systemic broken image found by the truth flags).
+- **Final revalidation (v0.3.0 via workspace link):** `verify` 24/24 green at all
+  viewports (2:04); `uishot all` **48/48 captures, 0 failures** (2:18), every shot
+  honestly carrying the app's broken-image flag. npm publish of 0.3.0 remains blocked on
+  registry credentials; shipped as git tag `uishot@0.3.0` on GitHub.
