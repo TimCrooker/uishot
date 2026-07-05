@@ -1,5 +1,21 @@
 # uishot-daemon
 
+## 0.3.0
+
+### Minor Changes
+
+- b7610fd: Progress streaming: long phases narrate to stderr instead of sitting silent.
+
+  The daemon streams `{ id, progress }` frames before the terminal response (`opening session "default"…`, `capturing items.list/base@lg`); the CLI prints them to stderr, plus a `starting uishot daemon…` notice on cold spawn. stdout remains a pure path list. Also documents the session-file caveat: `.uishot/sessions/*.json` is an internal cache, not a portable Playwright auth bundle.
+
+- 3cabcdb: verify now replays every named state at every capture viewport — a recipe that only works at desktop widths fails verify (`at 390x844` in the message) instead of passing at one viewport and breaking in sweeps. Failure messages also say when a selector matches an element that exists but is not visible at the current viewport, and docs state honest warm-capture timings for heavy dev servers.
+
+### Patch Changes
+
+- 895a251: Sweep resilience: a transient `page.goto` timeout (dev-server load) now retries once with a `retrying navigation…` progress note instead of failing the target. Non-timeout navigation errors still fail immediately. Eliminated the one-false-FAIL-per-sweep flake class observed in ListForge field testing.
+- Updated dependencies [3cabcdb]
+  - uishot-core@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
