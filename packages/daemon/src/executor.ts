@@ -99,7 +99,16 @@ export async function executeTargets(
       }
     };
     const navAndSettle = async (): Promise<void> => {
-      await session.goto(t.route);
+      try {
+        await session.goto(t.route);
+      } catch (err) {
+        // A nav timeout under sweep load (dev-server transform backlog) is the
+        // dominant transient in real projects; one retry converts a false FAIL
+        // into a capture. Anything else (refused, DNS) fails straight through.
+        if (!/goto.*Timeout.*exceeded/i.test((err as Error).message)) throw err;
+        progress(`retrying navigation to ${t.route} after a timeout`);
+        await session.goto(t.route);
+      }
       await snapshotOnce();
       try {
         await settle();

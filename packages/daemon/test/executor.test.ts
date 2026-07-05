@@ -161,3 +161,58 @@ describe('executeTargets', () => {
     expect(Object.keys(readIndex(root)).length).toBe(before);
   });
 });
+
+describe('nav-timeout retry', () => {
+  it('retries a transient goto timeout once instead of failing the target', async () => {
+    let gotos = 0;
+    const fakeSession = {
+      goto: async () => {
+        gotos++;
+        if (gotos === 1) throw new Error('page.goto: Timeout 30000ms exceeded.');
+      },
+      act: async () => {},
+      currentUrl: async () => `${BASE}/dashboard.html`,
+      setViewport: async () => {},
+      capture: async () => ({ png: Buffer.from('89504e470d0a1a0a', 'hex'), consoleErrors: 0, warnings: [] }),
+      resetErrorCount: () => {},
+      dispose: async () => {},
+    };
+    const fakeSurface = {
+      openSession: async () => fakeSession,
+      invalidateSession: async () => {},
+      dispose: async () => {},
+    };
+    const events: string[] = [];
+    const res = await executeTargets(
+      root,
+      manifest,
+      fakeSurface,
+      resolveTargets(manifest, { screen: 'dashboard', sizes: ['lg'], out: mkdtempSync(join(tmpdir(), 'uishot-nav-')) }),
+      { onProgress: (m) => events.push(m) },
+    );
+    expect(res.failures).toEqual([]);
+    expect(res.shots).toHaveLength(1);
+    expect(gotos).toBe(2);
+    expect(events.some((e) => /retrying navigation/.test(e))).toBe(true);
+  });
+
+  it('does not retry a non-timeout goto failure', async () => {
+    let gotos = 0;
+    const fakeSession = {
+      goto: async () => {
+        gotos++;
+        throw new Error('net::ERR_CONNECTION_REFUSED');
+      },
+      act: async () => {},
+      currentUrl: async () => BASE,
+      setViewport: async () => {},
+      capture: async () => ({ png: Buffer.alloc(8), consoleErrors: 0, warnings: [] }),
+      resetErrorCount: () => {},
+      dispose: async () => {},
+    };
+    const fakeSurface = { openSession: async () => fakeSession, invalidateSession: async () => {}, dispose: async () => {} };
+    const res = await executeTargets(root, manifest, fakeSurface, resolveTargets(manifest, { screen: 'dashboard', sizes: ['lg'] }));
+    expect(res.failures).toHaveLength(1);
+    expect(gotos).toBe(1);
+  });
+});
