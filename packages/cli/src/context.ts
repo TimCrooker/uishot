@@ -28,8 +28,13 @@ export function manifestEnv(root: string): Record<string, string> {
   return env;
 }
 
+/** Progress narration goes to stderr: stdout stays a machine-consumable path list. */
+export function progressToStderr(message: string): void {
+  console.error(message);
+}
+
 export async function getClient(root: string): Promise<DaemonClient> {
-  return DaemonClient.connectOrSpawn(root, daemonBinPath());
+  return DaemonClient.connectOrSpawn(root, daemonBinPath(), progressToStderr);
 }
 
 export function projectRoot(): string {

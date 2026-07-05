@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getClient, manifestEnv, projectRoot } from '../context.js';
+import { getClient, manifestEnv, progressToStderr, projectRoot } from '../context.js';
 
 interface VerifyOptions {
   feature?: string;
@@ -15,7 +15,7 @@ export function registerVerify(program: Command): void {
     .action(async (opts: VerifyOptions) => {
       const root = projectRoot();
       const client = await getClient(root);
-      const results = await client.request('verify', { feature: opts.feature, env: manifestEnv(root) });
+      const results = await client.request('verify', { feature: opts.feature, env: manifestEnv(root) }, progressToStderr);
       client.close();
       if (opts.json) {
         console.log(JSON.stringify(results, null, 2));

@@ -57,11 +57,15 @@ afterAll(async () => {
 
 describe('uishot CLI', () => {
   it('snap prints shot paths, exits 0, files exist', async () => {
-    const { stdout, exitCode } = await run(['snap', 'items.list', '--sizes', 'lg']);
+    const { stdout, stderr, exitCode } = await run(['snap', 'items.list', '--sizes', 'lg']);
     expect(exitCode).toBe(0);
     const lines = stdout.trim().split('\n');
     expect(lines[0]).toMatch(/\.uishot\/shots\/items\.list\/base@1280x800\.png$/);
     expect(existsSync(lines[0]!)).toBe(true);
+    // Cold start narrates to stderr instead of sitting silent through
+    // daemon spawn + Chromium boot + login; stdout stays a pure path list.
+    expect(stderr).toMatch(/starting uishot daemon/);
+    expect(stderr).toMatch(/capturing items\.list\/base@lg/);
   });
 
   it('warm snap completes in under 2 seconds', async () => {

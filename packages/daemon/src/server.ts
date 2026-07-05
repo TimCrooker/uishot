@@ -51,7 +51,7 @@ export async function startServer(root: string, opts: ServerOptions): Promise<Ru
     idleTimer.unref();
   };
 
-  async function dispatch(req: RequestMessage): Promise<unknown> {
+  async function dispatch(req: RequestMessage, emitProgress: (m: string) => void): Promise<unknown> {
     switch (req.method) {
       case 'ping':
         return 'pong';
@@ -76,13 +76,16 @@ export async function startServer(root: string, opts: ServerOptions): Promise<Ru
         const { env, ...query } = req.params as CaptureQuery & { env?: Record<string, string> };
         const manifest = loadManifest(root, { ...process.env, ...env });
         const targets = resolveTargets(manifest, query);
-        return executeTargets(root, manifest, getSurface(), targets);
+        return executeTargets(root, manifest, getSurface(), targets, { onProgress: emitProgress });
       }
       case 'verify': {
         const { feature, env } = (req.params ?? {}) as { feature?: string; env?: Record<string, string> };
         const manifest = loadManifest(root, { ...process.env, ...env });
         const targets = resolveTargets(manifest, feature ? { feature } : { all: true });
-        const res = await executeTargets(root, manifest, getSurface(), targets, { verifyOnly: true });
+        const res = await executeTargets(root, manifest, getSurface(), targets, {
+          verifyOnly: true,
+          onProgress: emitProgress,
+        });
         return res.verified.map((v): VerifyFailure => {
           if (v.ok) return v;
           const f = res.failures.find((x) => x.screen === v.screen && x.state === v.state);
@@ -128,9 +131,12 @@ export async function startServer(root: string, opts: ServerOptions): Promise<Ru
       conn.write(JSON.stringify({ id: -1, ok: false, error: 'invalid JSON request' }) + '\n');
       return;
     }
+    const emitProgress = (m: string): void => {
+      if (!conn.destroyed) conn.write(JSON.stringify({ id: req.id, progress: m }) + '\n');
+    };
     let res: ResponseMessage;
     try {
-      res = { id: req.id, ok: true, result: await dispatch(req) };
+      res = { id: req.id, ok: true, result: await dispatch(req, emitProgress) };
     } catch (err) {
       res = { id: req.id, ok: false, error: (err as Error).message };
     }

@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { getClient, manifestEnv, projectRoot } from '../context.js';
+import { getClient, manifestEnv, progressToStderr, projectRoot } from '../context.js';
 import { emit } from '../output.js';
 
 interface DiffOptions {
@@ -27,7 +27,7 @@ export function registerDiff(program: Command): void {
         session: opts.session,
         diff: true,
         env: manifestEnv(root),
-      });
+      }, progressToStderr);
       client.close();
       // Diff is information, not a gate: exit 0 regardless of change ratio.
       const code = emit(result, Boolean(opts.json));

@@ -35,6 +35,8 @@ export interface ExecuteResult {
 
 export interface ExecuteOptions {
   verifyOnly?: boolean;
+  /** Coarse phase events (session boots, per-viewport captures) for CLI stderr. */
+  onProgress?: (message: string) => void;
 }
 
 class StepFailure extends Error {
@@ -69,6 +71,7 @@ export async function executeTargets(
   const failures: CaptureFailure[] = [];
   const verified: VerifiedState[] = [];
   const queue = [...targets];
+  const progress = opts.onProgress ?? (() => {});
 
   async function captureOne(session: SurfaceSession, t: CaptureTarget): Promise<void> {
     session.resetErrorCount();
@@ -109,6 +112,7 @@ export async function executeTargets(
       }
     };
     const captureAt = async (vp: (typeof t.sizes)[number]): Promise<void> => {
+      progress(`capturing ${t.screenId}/${t.state}@${vp.name}`);
       const img = await session.capture(vp, t.clip);
       // Custom --out is a throwaway destination: write the PNG verbatim, no
       // prev-rotation / diff / index bookkeeping (those are default-shot concepts).
@@ -162,6 +166,7 @@ export async function executeTargets(
           await captureAt(vp);
         }
       } else {
+        if (opts.verifyOnly) progress(`verifying ${t.screenId}/${t.state}`);
         await navAndSettle();
         if (opts.verifyOnly) {
           verified.push({ screen: t.screenId, state: t.state, ok: true });
@@ -222,6 +227,7 @@ export async function executeTargets(
             });
             continue;
           }
+          progress(`opening session "${t.session}" (first use boots the browser and may log in)`);
           session = await surface.openSession(t.session, cfg, manifest);
           sessions.set(t.session, session);
         }

@@ -119,6 +119,21 @@ describe('executeTargets', () => {
     expect(existsSync(res.shots[0]!.path)).toBe(true);
   });
 
+  it('reports capture progress via onProgress', async () => {
+    const events: string[] = [];
+    const res = await executeTargets(
+      root,
+      manifest,
+      surface,
+      resolveTargets(manifest, { screen: 'items.list', sizes: ['sm', 'lg'] }),
+      { onProgress: (m) => events.push(m) },
+    );
+    expect(res.failures).toEqual([]);
+    expect(events).toContain('capturing items.list/base@sm');
+    expect(events).toContain('capturing items.list/base@lg');
+    expect(events.some((e) => /session "default"/.test(e))).toBe(true);
+  });
+
   it('propagates capture warnings into shot records and omits the field when clean', async () => {
     const res = await executeTargets(
       root,

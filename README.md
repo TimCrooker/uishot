@@ -98,6 +98,8 @@ uishot daemon <status|stop>                # lifecycle (normally automatic)
 
 **Output contract:** stdout is one produced file path per line (the minimal payload an agent needs). Paths are stable and guessable: `.uishot/shots/<screen>/<state>@<WxH>.png`. `--json` returns the full record (timestamps, git SHA, console-error counts, warnings, change ratios). `.uishot/shots/index.json` accumulates the latest record per screen/state/size.
 
+**Progress contract:** long phases narrate to stderr (`starting uishot daemon…`, `opening session "default"…`, `capturing items.list/base@lg`), so a cold start is never a silent hang. stdout stays a pure path list.
+
 **Truth contract:** a shot is either trustworthy or explicitly flagged — never silently wrong. Every capture waits for the page to settle (fonts, image decode, a DOM-mutation-quiet window, capped at 3s), and anything less than fully trustworthy is flagged: `warning <screen>/<state>@<size>: ...` on stderr, `warnings: [...]` in `--json`. Flags cover pages still mutating at the cap, broken images, and clipped or truncated content. No warnings means: full content, settled.
 
 **Failure contract:** a broken recipe exits 1 and writes stuck-state evidence — a screenshot of exactly where the recipe stopped (`__failed-<state>@<size>.png`) plus the failing step, the page URL/title it was on, near-miss selector suggestions harvested from the live DOM (`Near matches: [data-testid=open-filters], ...`), and the exact commands to repair. Errors are prompts.
@@ -135,6 +137,7 @@ A per-project daemon (autostarted by the first CLI call, idle-shutdown after 30 
 - **Sweeps die with login bounces after repeated runs?** Two known dynamics with rotating-refresh-token auth: (1) concurrent page boots race the rotation — set `app.parallelism: 1`; (2) every SPA boot hits the app's token-refresh endpoint, and back-to-back full sweeps can trip the API's rate limit on it — raise that limit in your dev environment. uishot serializes boots and self-heals single bounces, but it cannot out-engineer a 429 from your own API.
 - **Selectors from test files don't work.** `data-testid`s that only exist in `*.test.tsx` mocks are not in production DOM. Verify selectors against the running app (snap it and look), not the test suite.
 - **`=` in a fill value?** The `--do` parser splits on the last `=`; values containing `=` need a named YAML state.
+- **Can I reuse `.uishot/sessions/<name>.json` in my own Playwright script?** No — it's a uishot-internal cache (Playwright `storageState` at save time), not a portable auth bundle. Apps that keep access tokens in memory and re-derive them from a refresh cookie won't authenticate a cold external context from it. The session recipe is the source of truth; if you need the state yourself, replay the recipe — or better, use `--clip`/`--do` so you don't need an external script at all.
 - **Monorepo?** Run uishot from the app directory that owns the manifest (one manifest per app surface).
 - **Native mobile?** v1 is browser-only. Capture targets sit behind a `Surface` interface; a simulator surface is the planned second implementation.
 

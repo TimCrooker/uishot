@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { parseDo } from 'uishot-core';
-import { getClient, manifestEnv, projectRoot } from '../context.js';
+import { getClient, manifestEnv, progressToStderr, projectRoot } from '../context.js';
 import { emit } from '../output.js';
 import { writeLastDo } from '../last-do.js';
 
@@ -41,7 +41,7 @@ export function registerSnap(program: Command): void {
         clip: opts.clip,
         out: opts.out,
         env: manifestEnv(root),
-      });
+      }, progressToStderr);
       client.close();
       if (doSteps?.length && result.failures.length === 0) {
         writeLastDo(root, screenOrRoute, doSteps);

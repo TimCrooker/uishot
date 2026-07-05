@@ -53,3 +53,13 @@ export interface RequestMessage {
 export type ResponseMessage =
   | { id: number; ok: true; result: unknown }
   | { id: number; ok: false; error: string };
+
+/**
+ * Streamed before the terminal ResponseMessage for long jobs (browser boot,
+ * session login, per-viewport captures) so the CLI can narrate to stderr
+ * instead of sitting silent through a cold start.
+ */
+export interface ProgressMessage {
+  id: number;
+  progress: string;
+}

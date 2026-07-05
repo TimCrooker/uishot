@@ -9,7 +9,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export class DaemonClient {
   private nextId = 1;
   private buffer = '';
-  private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+  private pending = new Map<
+    number,
+    { resolve: (v: unknown) => void; reject: (e: Error) => void; onProgress?: (m: string) => void }
+  >();
 
   private constructor(private conn: Socket) {
     conn.on('data', (chunk) => this.onData(chunk));
@@ -26,10 +29,15 @@ export class DaemonClient {
   }
 
   /** Connect to the project daemon, spawning it first if it is not running. */
-  static async connectOrSpawn(root: string, daemonBin: string): Promise<DaemonClient> {
+  static async connectOrSpawn(
+    root: string,
+    daemonBin: string,
+    onProgress?: (message: string) => void,
+  ): Promise<DaemonClient> {
     try {
       return await DaemonClient.connect(root);
     } catch {
+      onProgress?.('starting uishot daemon (cold start boots Chromium; warm snaps are ~1-2s)');
       mkdirSync(join(root, '.uishot'), { recursive: true });
       const logFd = openSync(join(root, '.uishot', 'daemon.log'), 'a');
       const child = spawn(process.execPath, [daemonBin, root], {
@@ -60,9 +68,19 @@ export class DaemonClient {
       const line = this.buffer.slice(0, nl);
       this.buffer = this.buffer.slice(nl + 1);
       if (!line.trim()) continue;
-      const msg = JSON.parse(line) as { id: number; ok: boolean; result?: unknown; error?: string };
+      const msg = JSON.parse(line) as {
+        id: number;
+        ok?: boolean;
+        result?: unknown;
+        error?: string;
+        progress?: string;
+      };
       const waiter = this.pending.get(msg.id);
       if (!waiter) continue;
+      if (msg.progress !== undefined) {
+        waiter.onProgress?.(msg.progress);
+        continue; // interim frame — the terminal response is still coming
+      }
       this.pending.delete(msg.id);
       if (msg.ok) waiter.resolve(msg.result);
       else waiter.reject(new Error(msg.error));
@@ -76,12 +94,14 @@ export class DaemonClient {
 
   request<M extends Method>(
     method: M,
-    ...args: MethodMap[M]['params'] extends undefined ? [] : [MethodMap[M]['params']]
+    ...args: MethodMap[M]['params'] extends undefined
+      ? [] | [undefined, ((message: string) => void)?]
+      : [MethodMap[M]['params'], ((message: string) => void)?]
   ): Promise<MethodMap[M]['result']> {
     const id = this.nextId++;
     const payload = JSON.stringify({ id, method, params: args[0] }) + '\n';
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject });
+      this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject, onProgress: args[1] });
       this.conn.write(payload);
     });
   }

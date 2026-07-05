@@ -59,6 +59,15 @@ describe('daemon server', () => {
     expect(res.shots[0]!.path).toContain('dashboard/base@1280x800.png');
   });
 
+  it('streams progress frames during a snap job', async () => {
+    const events: string[] = [];
+    const res = await client.request('snap', { screen: 'dashboard', sizes: ['lg'] }, (m) =>
+      events.push(m),
+    );
+    expect(res.failures).toEqual([]);
+    expect(events).toContain('capturing dashboard/base@lg');
+  });
+
   it('returns ok:false errors with helpful messages', async () => {
     await expect(client.request('snap', { screen: 'ghost' })).rejects.toThrowError(/Available: dashboard/);
   });
