@@ -1,6 +1,6 @@
 ---
 name: uishot
-description: Use when iterating on web UI — capture any screen/state at any viewport in ~1s via `uishot snap` instead of driving a browser. Also when adding screens/states to uishot.config.yaml, diagnosing recipe failures, or running visual diffs.
+description: Use when iterating on web UI — capture any screen/state at any viewport in seconds via `uishot snap` instead of driving a browser. Also when adding screens/states to uishot.config.yaml, diagnosing recipe failures, or running visual diffs.
 ---
 
 # uishot — instant UI screenshots

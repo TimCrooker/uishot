@@ -34,6 +34,8 @@ screens:
         - waitFor: "dialog[open]"
       broken:
         - click: "[data-testid=ghost]"
+      desktop-fragile:
+        - click: "[data-testid=desktop-export]"
   dashboard:
     route: /dashboard.html
     feature: home
@@ -92,6 +94,18 @@ describe('executeTargets', () => {
     expect(res.shots).toEqual([]);
     expect(res.verified).toEqual([{ screen: 'items.list', state: 'filters-open', ok: true }]);
   });
+
+  it('verifyOnly replays stateful targets at every capture viewport and catches sm-only rot', async () => {
+    // desktop-export is display:none under 600px: fine at lg, dead at sm.
+    const targets = resolveTargets(manifest, {
+      screen: 'items.list',
+      state: 'desktop-fragile',
+      sizes: ['sm', 'lg'],
+    });
+    const res = await executeTargets(root, manifest, surface, targets, { verifyOnly: true });
+    expect(res.verified).toEqual([{ screen: 'items.list', state: 'desktop-fragile', ok: false }]);
+    expect(res.failures[0]!.message).toMatch(/at 390x844/);
+  }, 60000);
 
   it('unknown session fails with the session list', async () => {
     const targets = resolveTargets(manifest, { screen: 'dashboard', session: 'admin', sizes: ['lg'] });

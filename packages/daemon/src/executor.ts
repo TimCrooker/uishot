@@ -165,14 +165,28 @@ export async function executeTargets(
       shots.push(rec);
     };
     try {
-      if (t.steps.length > 0 && !opts.verifyOnly) {
+      if (t.steps.length > 0) {
         // Stateful targets rebuild the state per viewport: transient overlays
         // (dropdowns, popovers, portals) close on resize, so resizing after
-        // the recipe would capture a silently-degraded state.
+        // the recipe would capture a silently-degraded state. verify replays
+        // the exact same way — a recipe that only works at desktop widths is
+        // rot, and blessing it at one viewport would be a lie.
         for (const vp of t.sizes) {
+          if (opts.verifyOnly) progress(`verifying ${t.screenId}/${t.state}@${vp.name}`);
           await session.setViewport(vp);
-          await navAndSettle();
-          await captureAt(vp);
+          try {
+            await navAndSettle();
+          } catch (err) {
+            const at = ` (at ${vp.width}x${vp.height})`;
+            if (err instanceof StepFailure) err.cause.message += at;
+            else (err as Error).message += at;
+            throw err;
+          }
+          if (!opts.verifyOnly) await captureAt(vp);
+        }
+        if (opts.verifyOnly) {
+          verified.push({ screen: t.screenId, state: t.state, ok: true });
+          return;
         }
       } else {
         if (opts.verifyOnly) progress(`verifying ${t.screenId}/${t.state}`);

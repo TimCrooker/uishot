@@ -424,6 +424,26 @@ class BrowserSession implements SurfaceSession {
     }
     if (!sel) return out;
     try {
+      // Distinguish "wrong selector" from "right selector, wrong viewport/state":
+      // an existing-but-hidden element is a visibility problem, and saying so
+      // saves the agent from hunting for a rename that never happened.
+      const count = await this.page.locator(sel).count();
+      if (count > 0) {
+        const visible = await this.page
+          .locator(sel)
+          .first()
+          .isVisible()
+          .catch(() => false);
+        if (!visible) {
+          const vp = this.page.viewportSize();
+          const at = vp ? ` at ${vp.width}x${vp.height}` : '';
+          return `${out} The selector matches ${count} element(s), but not visible${at} — likely hidden at this viewport or in this state.`;
+        }
+      }
+    } catch {
+      // diagnostics only
+    }
+    try {
       const candidates = await this.page.evaluate((): SuggestionCandidate[] => {
         const found: { label: string; text: string }[] = [];
         for (const el of Array.from(document.querySelectorAll('[data-testid]'))) {

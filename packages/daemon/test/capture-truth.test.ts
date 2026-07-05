@@ -140,6 +140,20 @@ describe('clip-proof full capture', () => {
     await s.dispose();
   });
 
+  it('says when a failed selector matches an element that is not visible', async () => {
+    const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
+    await s.goto('/items.html');
+    let message = '';
+    try {
+      await s.act({ action: 'click', selector: '[data-testid=never-shown]' });
+    } catch (err) {
+      message = (err as Error).message;
+    }
+    expect(message).toMatch(/matches 1 element/);
+    expect(message).toMatch(/not visible/);
+    await s.dispose();
+  });
+
   it('omits suggestions when nothing on the page is plausibly related', async () => {
     const s = await surface.openSession('plain', manifest.sessions.plain!, manifest);
     await s.goto('/items.html');

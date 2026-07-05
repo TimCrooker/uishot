@@ -10,7 +10,7 @@ uishot snap orders.detail --state refund-modal --sizes sm,lg
 # .uishot/shots/orders.detail/refund-modal@1440x900.png
 ```
 
-~1–2s warm, any screen, any named state, any viewport. The agent's loop becomes: **edit → HMR → snap → Read image → edit**.
+Warm captures take ~1–2s on a fast page — on a heavy dev server (cold vite transforms, polling SPAs that never go network-idle) expect 5–8s, still with zero auth or navigation work. The agent's loop becomes: **edit → HMR → snap → Read image → edit**.
 
 ## The idea: addressable, not exhaustive
 
@@ -109,7 +109,7 @@ uishot daemon <status|stop>                # lifecycle (normally automatic)
 The manifest only pays off if it stays true. Two commands cover the two ways it rots, and both are CI-able:
 
 - **`uishot drift`** — coverage rot. Re-discovers the route tree and diffs it against the manifest: routes nobody made addressable (printed as a pasteable `screens:` snippet), param routes needing a representative id, and screens pointing at deleted routes. `--strict` exits 1 for CI.
-- **`uishot verify`** — recipe rot. Replays every session recipe, `readyWhen`, and named state headlessly without taking screenshots. A renamed `data-testid` shows up here, with stuck-state evidence.
+- **`uishot verify`** — recipe rot. Replays every session recipe, `readyWhen`, and named state headlessly without taking screenshots — states replay at every capture viewport, so a recipe that only works at desktop widths fails here, not in your evidence. A renamed `data-testid` shows up with stuck-state evidence and near-miss suggestions.
 
 The working agreement for an agent (also shipped as the `uishot` skill):
 

@@ -81,7 +81,8 @@ dialog {
   .grid {
     grid-template-columns: 1fr;
   }
-  .nav {
+  .nav,
+  .desktop-only {
     display: none;
   }
 }
